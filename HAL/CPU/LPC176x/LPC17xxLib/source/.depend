@@ -1,0 +1,325 @@
+# DO NOT DELETE
+
+lpc17xx_uart.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_uart.h
+lpc17xx_uart.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_uart.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_uart.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_uart.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_uart.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_uart.o: /usr/include/bits/wchar.h
+lpc17xx_uart.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_uart.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_uart.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_uart.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_uart.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_uart.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_spi.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_spi.h
+lpc17xx_spi.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_spi.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_spi.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_spi.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_spi.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_spi.o: /usr/include/bits/wchar.h
+lpc17xx_spi.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_spi.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_spi.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_spi.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_spi.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_spi.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_gpio.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_gpio.h
+lpc17xx_gpio.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_gpio.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_gpio.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_gpio.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_gpio.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_gpio.o: /usr/include/bits/wchar.h
+lpc17xx_gpio.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_gpio.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_gpio.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_gpio.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_gpio.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_exti.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_exti.h
+lpc17xx_exti.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_exti.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_exti.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_exti.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_exti.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_exti.o: /usr/include/bits/wchar.h
+lpc17xx_exti.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_exti.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_exti.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_exti.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_exti.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_pwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_pwm.h
+lpc17xx_pwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_pwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_pwm.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_pwm.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_pwm.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_pwm.o: /usr/include/bits/wchar.h
+lpc17xx_pwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_pwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_pwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_pwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_pwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_pwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_qei.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_qei.h
+lpc17xx_qei.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_qei.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_qei.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_qei.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_qei.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_qei.o: /usr/include/bits/wchar.h
+lpc17xx_qei.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_qei.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_qei.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_qei.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_qei.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_qei.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+debug_frmwrk.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/debug_frmwrk.h
+debug_frmwrk.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_uart.h
+debug_frmwrk.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+debug_frmwrk.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+debug_frmwrk.o: /usr/include/stdint.h /usr/include/features.h
+debug_frmwrk.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+debug_frmwrk.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+debug_frmwrk.o: /usr/include/bits/wchar.h
+debug_frmwrk.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+debug_frmwrk.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+debug_frmwrk.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+debug_frmwrk.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+debug_frmwrk.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_pinsel.h
+debug_frmwrk.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_adc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_adc.h
+lpc17xx_adc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_adc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_adc.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_adc.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_adc.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_adc.o: /usr/include/bits/wchar.h
+lpc17xx_adc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_adc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_adc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_adc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_adc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_adc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_libcfg_default.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_libcfg_default.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_libcfg_default.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_libcfg_default.o: /usr/include/sys/cdefs.h
+lpc17xx_libcfg_default.o: /usr/include/bits/wordsize.h
+lpc17xx_libcfg_default.o: /usr/include/gnu/stubs.h
+lpc17xx_libcfg_default.o: /usr/include/gnu/stubs-32.h
+lpc17xx_libcfg_default.o: /usr/include/bits/wchar.h
+lpc17xx_mcpwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_mcpwm.h
+lpc17xx_mcpwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_mcpwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_mcpwm.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_mcpwm.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_mcpwm.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_mcpwm.o: /usr/include/bits/wchar.h
+lpc17xx_mcpwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_mcpwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_mcpwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_mcpwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_mcpwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_mcpwm.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_nvic.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_nvic.h
+lpc17xx_nvic.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_nvic.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_nvic.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_nvic.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_nvic.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_nvic.o: /usr/include/bits/wchar.h
+lpc17xx_nvic.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_nvic.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_nvic.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_nvic.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_emac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_emac.h
+lpc17xx_emac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_emac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_emac.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_emac.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_emac.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_emac.o: /usr/include/bits/wchar.h
+lpc17xx_emac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_emac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_emac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_emac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_emac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_emac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_gpdma.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_gpdma.h
+lpc17xx_gpdma.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_gpdma.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_gpdma.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_gpdma.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_gpdma.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_gpdma.o: /usr/include/bits/wchar.h
+lpc17xx_gpdma.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_gpdma.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_gpdma.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_gpdma.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_gpdma.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_gpdma.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_dac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_dac.h
+lpc17xx_dac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_dac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_dac.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_dac.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_dac.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_dac.o: /usr/include/bits/wchar.h
+lpc17xx_dac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_dac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_dac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_dac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_dac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_dac.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_clkpwr.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_clkpwr.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_clkpwr.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_clkpwr.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_clkpwr.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_clkpwr.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_clkpwr.o: /usr/include/bits/wchar.h
+lpc17xx_clkpwr.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_clkpwr.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_clkpwr.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_clkpwr.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_can.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_can.h
+lpc17xx_can.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_can.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_can.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_can.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_can.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_can.o: /usr/include/bits/wchar.h
+lpc17xx_can.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_can.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_can.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_can.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_can.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_can.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_rtc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_rtc.h
+lpc17xx_rtc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_rtc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_rtc.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_rtc.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_rtc.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_rtc.o: /usr/include/bits/wchar.h
+lpc17xx_rtc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_rtc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_rtc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_rtc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_rtc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_rtc.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_systick.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_systick.h
+lpc17xx_systick.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_systick.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_systick.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_systick.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_systick.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_systick.o: /usr/include/bits/wchar.h
+lpc17xx_systick.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_systick.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_systick.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_systick.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_systick.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_systick.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_i2s.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_i2s.h
+lpc17xx_i2s.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_i2s.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_i2s.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_i2s.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_i2s.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_i2s.o: /usr/include/bits/wchar.h
+lpc17xx_i2s.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_i2s.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_i2s.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_i2s.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_i2s.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_i2s.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_iap.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_iap.h
+lpc17xx_iap.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_iap.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_iap.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_iap.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_iap.o: /usr/include/bits/wchar.h
+lpc17xx_iap.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_wdt.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_wdt.h
+lpc17xx_wdt.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_wdt.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_wdt.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_wdt.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_wdt.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_wdt.o: /usr/include/bits/wchar.h
+lpc17xx_wdt.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_wdt.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_wdt.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_wdt.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_wdt.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_wdt.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_pinsel.h
+lpc17xx_wdt.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_pinsel.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_pinsel.h
+lpc17xx_pinsel.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_pinsel.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_pinsel.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_pinsel.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_pinsel.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_pinsel.o: /usr/include/bits/wchar.h
+lpc17xx_pinsel.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_pinsel.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_pinsel.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_pinsel.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_timer.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_timer.h
+lpc17xx_timer.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_timer.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_timer.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_timer.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_timer.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_timer.o: /usr/include/bits/wchar.h
+lpc17xx_timer.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_timer.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_timer.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_timer.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_timer.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_timer.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_pinsel.h
+lpc17xx_timer.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_i2c.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_i2c.h
+lpc17xx_i2c.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_i2c.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_i2c.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_i2c.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_i2c.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_i2c.o: /usr/include/bits/wchar.h
+lpc17xx_i2c.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_i2c.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_i2c.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_i2c.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_i2c.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_i2c.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_pinsel.h
+lpc17xx_i2c.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_rit.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_rit.h
+lpc17xx_rit.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_rit.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_rit.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_rit.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_rit.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_rit.o: /usr/include/bits/wchar.h
+lpc17xx_rit.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_rit.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_rit.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_rit.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_rit.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_rit.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
+lpc17xx_ssp.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_ssp.h
+lpc17xx_ssp.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/LPC17xx.h
+lpc17xx_ssp.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cm3.h
+lpc17xx_ssp.o: /usr/include/stdint.h /usr/include/features.h
+lpc17xx_ssp.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+lpc17xx_ssp.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+lpc17xx_ssp.o: /usr/include/bits/wchar.h
+lpc17xx_ssp.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmInstr.h
+lpc17xx_ssp.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/CMSIS/Include/core_cmFunc.h
+lpc17xx_ssp.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Core/Device/NXP/LPC17xx/Include/system_LPC17xx.h
+lpc17xx_ssp.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc_types.h
+lpc17xx_ssp.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_clkpwr.h
+lpc17xx_ssp.o: /home/triffid/Projects/lpc175x_6x-ebe5179/Drivers/include/lpc17xx_libcfg_default.h
