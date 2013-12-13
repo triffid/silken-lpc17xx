@@ -36,8 +36,8 @@ struct _platform_serialdata
 static Serial* instance[4];
 
 extern "C" {
-	static struct _platform_serialdata serialdatas[2];
-	static int serialdata_index = 0;
+// 	static struct _platform_serialdata serialdatas[2];
+// 	static int serialdata_index = 0;
 	
 	void UART0_IRQHandler(void)
 	{
