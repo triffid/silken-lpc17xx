@@ -29,7 +29,7 @@ struct _platform_serialdata
 	uint8_t* rxbuf;
 	uint16_t rxhead;
 	uint16_t rxtail;
-
+	
 	LPC_UART_TypeDef* u;
 };
 
@@ -235,7 +235,8 @@ Serial::Serial(PinName tx, PinName rx, int baud)
 	// TODO: stop futzing around, do this properly
 // 	data = (_platform_serialdata*) AHB0.alloc(sizeof(_platform_serialdata));
 // 	__debugbreak();
-	data = &serialdatas[serialdata_index++];
+// 	data = &serialdatas[serialdata_index++];
+	data = (_platform_serialdata*) malloc(sizeof(_platform_serialdata));
 
 	uint8_t* block = (uint8_t*) AHB0.alloc(BUFSIZE * 2);
 	data->txbuf = block;
@@ -303,9 +304,7 @@ int Serial::write(const void* buf, int buflen)
 	data->txhead = (data->txhead + buflen) & (BUFSIZE - 1);
 	
 	if ((data->u->IER & UART_IER_THREINT_EN) == 0)
-	{
 		tx_isr();
-	}
 	
 	return t;
 }
@@ -358,16 +357,19 @@ void Serial::isr()
 
 void Serial::tx_isr()
 {
-	data->u->IER &= ~(UART_IER_THREINT_EN);
-	
-	for (int i = 0; i < 16 && data->txtail != data->txhead; i++)
-	{
-		data->u->THR = data->txbuf[data->txtail];
-		data->txtail = (data->txtail + 1) & (BUFSIZE - 1);
-	}
-	
 	if (data->txtail != data->txhead)
+	{
+		for (int i = 0; i < 16 && data->txtail != data->txhead; i++)
+		{
+			data->u->THR = data->txbuf[data->txtail];
+			data->txtail = (data->txtail + 1) & (BUFSIZE - 1);
+		}
 		data->u->IER |= UART_IER_THREINT_EN;
+	}
+	else
+	{
+		data->u->IER &= ~(UART_IER_THREINT_EN);
+	}
 }
 
 void Serial::rx_isr()

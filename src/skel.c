@@ -112,110 +112,207 @@ int atexit(void(*f)(void)){ return 0; }
  *                                                                            *
  ******************************************************************************/
 
+#ifndef MDEBUG
+#define MDEBUG(...) do {} while (0)
+// #define MDEBUG(...) printf(__VA_ARGS__)
+#endif
+
 typedef struct __attribute__ ((packed))
 {
-	uintptr_t last :1;
-	uintptr_t free :1;
-	uintptr_t next :30;
+	uint32_t last :1;
+	uint32_t used :1;
+	uint32_t next :30;
 	
 	uint8_t  data[];
 } _alloc_block;
 
 static _alloc_block* _malloc_start = NULL;
-
+static _alloc_block* _malloc_end   = NULL;
+extern void* __end__; // from linker
+extern void* __HeapLimit; // from linker
+#define offset(x) (((uint8_t*) x) - ((uint8_t*) _malloc_start))
 #define _malloc_size(walk) ((uintptr_t) (((uint8_t*) ((uintptr_t)walk->next)) - ((uint8_t*) walk)))
-void* malloc(size_t size)
+void* malloc(size_t nbytes)
 {
-	if (size & 3)
-		size += (4 - (size & 3)); // round up to 4-aligned value
-
-	if (_malloc_start == NULL)
+	// nbytes = ceil(nbytes / 4) * 4
+	if (nbytes & 3)
+		nbytes += 4 - (nbytes & 3);
+	
+	// start at the start
+	_alloc_block* p = ((_alloc_block*) _malloc_start);
+	
+	if (p == NULL)
 	{
-		_malloc_start = _sbrk(sizeof(_alloc_block) + size);
-		_malloc_start->next = ((uintptr_t) _malloc_start) + sizeof(_alloc_block) + size;
-		_malloc_start->last = 1;
-		_malloc_start->free = 0;
-		return _malloc_start->data;
+		p = _malloc_start = _sbrk(sizeof(_alloc_block) + nbytes);
+		p->next = sizeof(_alloc_block) + nbytes;
+		p->used = 0;
+		p->last = 1;
+		
+		_malloc_end = (_alloc_block*) (((uint8_t*) p) + sizeof(_alloc_block) + nbytes);
 	}
-
-	_alloc_block* walk = _malloc_start;
-	do
-	{
-		if (walk->free && (_malloc_size(walk) >= (size + sizeof(_alloc_block))))
-		{
-			walk->free = 0;
-			if (_malloc_size(walk) > size)
+	
+	// find the allocation size including our metadata
+	uint16_t nsize = nbytes + sizeof(_alloc_block);
+	
+	MDEBUG("\tallocate %d bytes from heap at %p\n", nsize, _malloc_start);
+	
+	// now we walk the list, looking for a sufficiently large free block
+	do {
+		MDEBUG("\t\tchecking %p (%s, %db%s)\n", p, (p->used?"used":"free"), p->next, (p->last?", last":""));
+		if ((p->used == 0) && (p->next >= nsize))
+		{   // we found a free space that's big enough
+			MDEBUG("\t\tFOUND free block at %p (+%d) with %d bytes\n", p, offset(p), p->next);
+			// mark it as used
+			p->used = 1;
+			
+			// if there's free space at the end of this block
+			if (p->next > nsize)
 			{
-				_alloc_block* n = (_alloc_block*) (((uint8_t*) ((uintptr_t) walk)) + sizeof(_alloc_block) + size);
-				n->next = walk->next;
-				n->last = walk->last;
-				n->free = 1;
-				walk->last = 0;
-				walk->next = ((uintptr_t) n);
+				// q = p->next
+				_alloc_block* q = (_alloc_block*) (((uint8_t*) p) + nsize);
+				
+				MDEBUG("\t\twriting header to %p (+%d) (%d)\n", q, offset(q), p->next - nsize);
+				// write a new block header into q
+				q->used = 0;
+				q->next = p->next - nsize;
+				q->last = p->last;
+				p->last = 0;
+				
+				// set our next to point to it
+				p->next = nsize;
+				
+// 				// move sbrk so we know where the end of the list is
+// 				if (offset(q) > sbrk)
+// 					sbrk = offset(q);
+// 				
+// 				// sanity check
+// 				if (sbrk > size)
+// 				{
+// 					// captain, we have a problem!
+// 					// this can only happen if something has corrupted our heap, since we should simply fail to find a free block if it's full
+// 					__debugbreak();
+// 				}
 			}
-			return walk->data;
+// 			
+// 			MDEBUG("\t\tsbrk is %d (%p)\n", sbrk, ((uint8_t*) base) + sbrk);
+			
+			// then return the data region for the block
+			return &p->data;
 		}
 		
-		if (walk->last)
+		if (p->last)
 			break;
-
-		walk = (_alloc_block*) ((uintptr_t) walk->next);
+		
+		// p = p->next
+		p = (_alloc_block*) (((uint8_t*) p) + p->next);
+		
+		// make sure we don't walk off the end
+	} while (p <= _malloc_end);
+	
+	// get a new block from sbrk
+	_alloc_block* q = (_alloc_block*) _sbrk(nsize);
+	
+	if (q)
+	{
+		MDEBUG("\t\tsbrk gave new  %db block at %p\n", nsize, q);
+		
+		p->next = ((uint8_t*) q) - ((uint8_t*) p);
+		q->next = nsize;
+		q->used = 1;
+		p->last = 0;
+		q->last = 1;
+		
+		return q->data;
 	}
-	while ((walk->last == 0) && walk->next);
-
-	walk->next = (uint32_t) _sbrk(size + sizeof(_alloc_block));
-
-	if (walk->next == 0)
-		return NULL;
-
-	walk->last = 0;
-
-	walk = (_alloc_block*) ((uintptr_t) walk->next);
-	walk->next = 0;
-	walk->free = 0;
-	walk->last = 1;
-
-	return walk->data;
+	
+	MDEBUG("\t\tsbrk returned null! size: %d, last block at %p\n", nsize, p);
+	
+	// fell off the end of the region!
+	return NULL;
 }
 
 void free(void* alloc)
 {
-	_alloc_block* freed = (_alloc_block*) (((uintptr_t) alloc) - 4);
-
-	if (freed->free)
+// 	_alloc_block* p = (_alloc_block*) (((uint8_t*) alloc) - sizeof(_alloc_block));
+	_alloc_block* p = ((_alloc_block*) alloc) - 1;
+	p->used = 0;
+	
+	MDEBUG("\tdeallocating %p (+%d, %db)\n", p, offset(p), p->next);
+	
+	// combine next block if it's free
+	_alloc_block* q = (_alloc_block*) (((uint8_t*) p) + p->next);
+	MDEBUG("\t\tchecking %p (%s, %db%s)\n", q, (q->used?"used":"free"), q->next, (q->last?", last":""));
+	if (q->used == 0)
 	{
-		_write(0, "Double free!\n", 13);
-		__debugbreak();
+		MDEBUG("\t\tCombining with next free region at %p, new size is %d\n", q, p->next + q->next);
+		
+// 		// if q was the last block, move sbrk back to p (the deallocated block)
+// 		if (offset(q) >= sbrk)
+// 			sbrk = offset(p);
+// 		
+// 		MDEBUG("\t\tsbrk is %d (%p)\n", sbrk, ((uint8_t*) base) + sbrk);
+// 		
+// 		// sanity check
+// 		if (sbrk > size)
+// 		{
+// 			// captain, we have a problem!
+// 			// this can only happen if something has corrupted our heap, since we should simply fail to find a free block if it's full
+// 			__debugbreak();
+// 		}
+		
+		p->next += q->next;
+		p->last =  q->last;
 	}
-
-	freed->free = 1;
-
-	// combine with next free section
-	if (freed->last == 0)
-	{
-		_alloc_block* next = (_alloc_block*) ((uintptr_t) freed->next);
-		if (next->free)
-		{
-			freed->next = next->next;
-			freed->last = next->last;
-		}
-	}
-
-	// combine with previous free section
-	_alloc_block* walk = _malloc_start;
-	do
-	{
-		if (walk->next == ((uintptr_t) freed))
-		{
-			if (walk->free)
-			{
-				walk->next = freed->next;
-				walk->last = freed->last;
+	
+	// walk the list to find previous block
+	q = (_alloc_block*) _malloc_start;
+	do {
+		MDEBUG("\t\tchecking %p (%s, %db%s)\n", q, (q->used?"used":"free"), q->next, (q->last?", last":""));
+		// check if q is the previous block
+		if ((((uint8_t*) q) + q->next) == (uint8_t*) p) {
+			// q is the previous block.
+			if (q->used == 0)
+			{ // if q is free
+				MDEBUG("\t\tCombining with previous free region at %p, new size is %d\n", q, p->next + q->next);
+				
+				// combine!
+				q->next += p->next;
+				q->last =  p->last;
+				
+// 				// if this block was the last one, then set sbrk back to the start of the previous block we just combined
+// 				if ((offset(p) + p->next) >= sbrk)
+// 					sbrk = offset(q);
+// 				
+// 				MDEBUG("\t\tsbrk is %d (%p)\n", sbrk, ((uint8_t*) base) + sbrk);
+// 				
+// 				// sanity check
+// 				if (sbrk > size)
+// 				{
+// 					// captain, we have a problem!
+// 					// this can only happen if something has corrupted our heap, since we should simply fail to find a free block if it's full
+// 					__debugbreak();
+// 				}
 			}
-			break;
+			
+			// we found previous block, return
+			return;
 		}
-
-		walk = (_alloc_block*) ((uintptr_t) walk->next);
-	}
-	while ((walk->last == 0) && walk->next);
+		
+		// return if last block
+		if (q->last)
+			return;
+		
+		// q = q->next
+		q = (_alloc_block*) (((uint8_t*) q) + q->next);
+		
+		// if some idiot deallocates our memory region while we're using it, strange things can happen.
+		// avoid an infinite loop in that case, however we'll still leak memory and may corrupt things
+		if (q->next == 0)
+			return;
+		
+		if (q->last)
+			return;
+		
+		// make sure we don't walk off the end
+	} while (q < (_alloc_block*) (_malloc_end));
 }

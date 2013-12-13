@@ -54,6 +54,8 @@ extern "C" {
 				r = uart->write(buf, buflen);
 				buflen -= r;
 				buf += r;
+				if (buflen)
+					asm volatile ("wfi");
 			}
 		}
 		return sl;
@@ -102,7 +104,10 @@ int main()
 	
 	setleds(leds, 2);
 	
-	if (1)
+	// 	__debugbreak();
+	printf("testing a large string which should hopefully demonstrate whether or not the serial queueing mechanisms are sensible.\nThe length of this string has been extended to overrun the serial transmit buffer.\n");
+
+	if (0)
 	{
 		i = 10;
 
@@ -114,6 +119,8 @@ int main()
 			for (r = 0; r < (1<<20); r++);
 		}
 	}
+	
+	for(;;);
 }
 
 

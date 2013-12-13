@@ -48,6 +48,7 @@ int puts(const char *str)
 {
 	int length = strlen(str);
 	_write(1, str, length);
+	_write(1, "\n", 1);
 	return length;
 }
 
@@ -141,7 +142,10 @@ int vfprintf(int fd, const char *format, va_list args)
 			{
 				case 's':
 				{
-					length += puts(va_arg(args, const char *));
+// 					length += puts(va_arg(args, const char *));
+					const char* c = va_arg(args, const char *);
+					int l = strlen(c);
+					length += _write(1, c, l);
 					j = 0;
 					break;
 				}
