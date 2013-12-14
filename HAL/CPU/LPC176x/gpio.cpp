@@ -40,11 +40,14 @@ GPIO::GPIO(PinName pin)
 GPIO* GPIO::setup()
 {
 	PINSEL_CFG_Type PinCfg;
-	PinCfg.Funcnum = 0;
+	
+	PinCfg.Portnum   = PORT(pin);
+	PinCfg.Pinnum    = PIN(pin);
+	
+	PinCfg.Funcnum   = 0;
+	PinCfg.Pinmode   = PINSEL_PINMODE_PULLUP;
 	PinCfg.OpenDrain = PINSEL_PINMODE_NORMAL;
-	PinCfg.Pinmode = PINSEL_PINMODE_PULLUP;
-	PinCfg.Portnum = PORT(pin);
-	PinCfg.Pinnum = PIN(pin);
+	
 	PINSEL_ConfigPin(&PinCfg);
 
 	return this;
