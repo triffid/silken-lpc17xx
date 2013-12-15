@@ -29,11 +29,11 @@
 
 #include "min-printf.h"
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stdint.h>
 
 int _write(int, const char *, int);
 
@@ -172,6 +172,7 @@ int vfprintf(int fd, const char *format, va_list args)
 					j = 0;
 					break;
 				case 'x':
+				case 'X':
 					if (j <= 4)
 						_hex_write(va_arg(args, uint32_t));
 					j = 0;

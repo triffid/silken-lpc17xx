@@ -14,19 +14,22 @@ class SPI : public DMA_receiver
 public:
 	SPI(PinName mosi, PinName miso, PinName sck, PinName ss);
 	
-	void set_frequency(uint32_t frequency);
+	void    set_frequency(uint32_t frequency);
+	
+	void    begin_transaction(void);
+	void    end_transaction(void);
 	
 	uint8_t transfer(uint8_t data);
 	
-	void transfer_block(const uint8_t* tx, uint8_t* rx, int length);
+	void    transfer_block(const uint8_t* tx, uint8_t* rx, int length);
 	
-	void send_block(const uint8_t* tx, int length);
-	void recv_block(      uint8_t* rx, int length, uint8_t txchar);
+	void    send_block(const uint8_t* tx, int length) __attribute__ ((optimize("O0")));
+	void    recv_block(      uint8_t* rx, int length, uint8_t txchar);
 	
 	// implementation of DMA_receiver
-	void dma_begin(DMA*);
-	void dma_complete(DMA*);
-	void dma_configure(dma_config*);
+	void    dma_begin(DMA*);
+	void    dma_complete(DMA*);
+	void    dma_configure(dma_config*);
 private:
 	spi_platform_data* data;
 };
