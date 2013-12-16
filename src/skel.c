@@ -32,8 +32,6 @@
 
 #include "mri.h"
 
-// int _write(int, const char *, int);
-
 void WEAK _exit(int i) {
 	while (1)
 		NVIC_SystemReset();
@@ -82,9 +80,6 @@ void* WEAK _sbrk(int incr) {
 	{
 		_write (0, "Heap and stack collision\n", 25);
 		__debugbreak();
-		//errno = ENOMEM;
-// 		return  (void *) -1;
-		//abort ();
 	}
 
 	heap_end += incr;
@@ -102,8 +97,6 @@ int WEAK _isatty(int fd) {
 }
 
 void WEAK __aeabi_unwind_cpp_pr0(void){}
-// void __libc_init_array(void){}
-// int __atexit(void(*f)(void)){ return 0; }
 int atexit(void(*f)(void)){ return 0; }
 
 /******************************************************************************
@@ -181,20 +174,7 @@ void* malloc(size_t nbytes)
 				// set our next to point to it
 				p->next = nsize;
 				
-// 				// move sbrk so we know where the end of the list is
-// 				if (offset(q) > sbrk)
-// 					sbrk = offset(q);
-// 				
-// 				// sanity check
-// 				if (sbrk > size)
-// 				{
-// 					// captain, we have a problem!
-// 					// this can only happen if something has corrupted our heap, since we should simply fail to find a free block if it's full
-// 					__debugbreak();
-// 				}
 			}
-// 			
-// 			MDEBUG("\t\tsbrk is %d (%p)\n", sbrk, ((uint8_t*) base) + sbrk);
 			
 			// then return the data region for the block
 			return &p->data;
@@ -233,7 +213,6 @@ void* malloc(size_t nbytes)
 
 void free(void* alloc)
 {
-// 	_alloc_block* p = (_alloc_block*) (((uint8_t*) alloc) - sizeof(_alloc_block));
 	_alloc_block* p = ((_alloc_block*) alloc) - 1;
 	p->used = 0;
 	
@@ -245,20 +224,6 @@ void free(void* alloc)
 	if (q->used == 0)
 	{
 		MDEBUG("\t\tCombining with next free region at %p, new size is %d\n", q, p->next + q->next);
-		
-// 		// if q was the last block, move sbrk back to p (the deallocated block)
-// 		if (offset(q) >= sbrk)
-// 			sbrk = offset(p);
-// 		
-// 		MDEBUG("\t\tsbrk is %d (%p)\n", sbrk, ((uint8_t*) base) + sbrk);
-// 		
-// 		// sanity check
-// 		if (sbrk > size)
-// 		{
-// 			// captain, we have a problem!
-// 			// this can only happen if something has corrupted our heap, since we should simply fail to find a free block if it's full
-// 			__debugbreak();
-// 		}
 		
 		p->next += q->next;
 		p->last =  q->last;
@@ -278,20 +243,6 @@ void free(void* alloc)
 				// combine!
 				q->next += p->next;
 				q->last =  p->last;
-				
-// 				// if this block was the last one, then set sbrk back to the start of the previous block we just combined
-// 				if ((offset(p) + p->next) >= sbrk)
-// 					sbrk = offset(q);
-// 				
-// 				MDEBUG("\t\tsbrk is %d (%p)\n", sbrk, ((uint8_t*) base) + sbrk);
-// 				
-// 				// sanity check
-// 				if (sbrk > size)
-// 				{
-// 					// captain, we have a problem!
-// 					// this can only happen if something has corrupted our heap, since we should simply fail to find a free block if it's full
-// 					__debugbreak();
-// 				}
 			}
 			
 			// we found previous block, return

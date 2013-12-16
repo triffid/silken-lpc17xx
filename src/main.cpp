@@ -38,6 +38,7 @@
 #include "MemoryPool.h"
 
 #include "SPI.h"
+#include "SD.h"
 
 #include "platform_utils.h"
 #include "platform_memory.h"
@@ -405,22 +406,40 @@ int sd_recv_data(SPI* spi, uint8_t* buf, int buflen)
 	return r;
 }
 
+class sar : public SD_async_receiver
+{
+	void sd_read_complete(SD* sd, uint32_t sector, void* buf, int err)
+	{
+		uint8_t* b = (uint8_t*) buf;
+		printf("read complete! sector %lu, buf %p, err: %d\n", sector, buf, err);
+		if (err == 0)
+		{
+			for (int i = 0; i < 512; i++)
+				printf("0x%X%c", b[i], ((i & 31) == 31)?'\n':' ');
+		}
+	};
+
+	void sd_write_complete(SD* sd, uint32_t sector, void* buf, int err)
+	{
+	};
+} sar_dumper;
+
 int main()
 {
 	int i = 0;
 	
-	// 3 bits for group, 2 bits subgroup
-	NVIC_SetPriorityGrouping(4);
-	
-	// set all interrupts to low priority
-	for (i = WDT_IRQn; i < CANActivity_IRQn; i++)
-		NVIC_SetPriority((IRQn_Type) i, 31);
-	
-	// UART gets highest priority
-	NVIC_SetPriority(UART0_IRQn, 0);
-	
 	__mriInit("MRI_UART_0 MRI_UART_SHARE MRI_UART_BAUD=1000000");
 	
+	// 3 bits for group, 2 bits subgroup
+	NVIC_SetPriorityGrouping(4);
+
+	// set all interrupts to low priority
+	for (i = 0; i < 34; i++)
+		NVIC_SetPriority((IRQn_Type) i, 31);
+
+	// UART gets highest priority
+	NVIC_SetPriority(UART0_IRQn, 0);
+
 	GPIO leds[5] = {
 		GPIO(LED1),
 		GPIO(LED2),
@@ -452,32 +471,50 @@ int main()
 	
 	printf("Starting SD Card test\n");
 
-	sd_cmd(spi, 0, 0);
-	sd_cmd8(spi);
-	sd_cmd58(spi);
-	do {
-		sd_cmd(spi, 55, 0);
-		i = sd_cmd(spi, 41, (1<<30));
-	} while (i == 1);
-	sd_cmd58(spi);
-	
-	spi->set_frequency(10000000);
-	
-	uint8_t* rxbuf = (uint8_t*) AHB0.alloc(512);
-	
-	sd_cmdx(spi, 17, 0 * 512); sd_recv_data(spi, rxbuf, 512);
-	sd_cmdx(spi, 18, 133 * 512);
-// 	sd_recv_data(spi, rxbuf, 512);
-// 	sd_cmdx(spi, 17, 134 * 512); sd_recv_data(spi, rxbuf, 512);
-	
-	for (i = 0; i < 16; i++)
-		sd_recv_data(spi, rxbuf, 512);
-	
-	sd_cmd(spi, 12, 0);
-	
-	printf("DMA IntStat: %lu\n", *((uint32_t*) 0x50004000));
-	printf("DMA IntTCStat: %lu\n", *((uint32_t*) 0x50004004));
-	printf("DMA IntErrStat: %lu\n", *((uint32_t*) 0x5000400C));
+	SD* sd = new SD(spi);
+
+	int r;
+	if ((r = sd->init()) < 1)
+	{
+		printf("SD init failed: %d!\n", r);
+		for(;;)
+			__WFI();
+	}
+
+	uint8_t* rbuf = (uint8_t*) AHB0.alloc(512);
+
+	sd->begin_read(0, rbuf, &sar_dumper);
+	sd->begin_read(133, rbuf, &sar_dumper);
+
+	for (;;)
+		sd->on_idle();
+
+// 	sd_cmd(spi, 0, 0);
+// 	sd_cmd8(spi);
+// 	sd_cmd58(spi);
+// 	do {
+// 		sd_cmd(spi, 55, 0);
+// 		i = sd_cmd(spi, 41, (1<<30));
+// 	} while (i == 1);
+// 	sd_cmd58(spi);
+//
+// 	spi->set_frequency(10000000);
+//
+// 	uint8_t* rxbuf = (uint8_t*) AHB0.alloc(512);
+//
+// 	sd_cmdx(spi, 17, 0 * 512); sd_recv_data(spi, rxbuf, 512);
+// 	sd_cmdx(spi, 18, 133 * 512);
+// // 	sd_recv_data(spi, rxbuf, 512);
+// // 	sd_cmdx(spi, 17, 134 * 512); sd_recv_data(spi, rxbuf, 512);
+//
+// 	for (i = 0; i < 16; i++)
+// 		sd_recv_data(spi, rxbuf, 512);
+//
+// 	sd_cmd(spi, 12, 0);
+//
+// 	printf("DMA IntStat: %lu\n", *((uint32_t*) 0x50004000));
+// 	printf("DMA IntTCStat: %lu\n", *((uint32_t*) 0x50004004));
+// 	printf("DMA IntErrStat: %lu\n", *((uint32_t*) 0x5000400C));
 	
 	for(;;);
 }

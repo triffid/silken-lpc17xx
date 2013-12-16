@@ -89,12 +89,13 @@ void DMA::setup(uint32_t size)
 			if (channel_map[i] == NULL)
 			{
 				data->dma_channel = i;
-				channel_map[i] = this;
 				break;
 			}
 		}
 		__enable_irq();
 	}
+
+	channel_map[data->dma_channel] = this;
 	
 	GPDMA_Channel_CFG_Type chconfig;
 	

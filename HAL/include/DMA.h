@@ -1,6 +1,24 @@
 #ifndef _DMA_H
 #define _DMA_H
 
+#include <cstdint>
+
+/*
+ * direction flag
+ */
+typedef enum {
+	DMA_SENDER,
+	DMA_RECEIVER
+} dma_direction_t;
+
+/*
+ * auto increment flag
+ */
+typedef enum {
+	DMA_AUTO_INCREMENT,
+	DMA_NO_INCREMENT
+} dma_auto_increment_t;
+
 /*
  * predeclarations
  */
@@ -71,7 +89,19 @@ private:
 class DMA_mem : public DMA_receiver
 {
 public:
+	DMA_mem(void)
+	{
+		addr = (void*)0;
+		size = 0;
+		auto_increment = DMA_AUTO_INCREMENT;
+	}
+	
 	DMA_mem(void* addr, uint32_t size)
+	{
+		setup(addr, size);
+	};
+	
+	void setup(void* addr, uint32_t size)
 	{
 		this->addr = addr;
 		this->size = size;

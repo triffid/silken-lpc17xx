@@ -4,11 +4,6 @@
 #include <cstdint>
 
 typedef enum {
-	DMA_SENDER,
-	DMA_RECEIVER
-} dma_direction_t;
-
-typedef enum {
 	DMA_MEM,
 	DMA_PERIPHERAL
 } dma_type_t;
@@ -29,11 +24,6 @@ typedef enum {
 	DMA_BS_128,
 	DMA_BS_256
 } dma_burstsize_t;
-
-typedef enum {
-	DMA_AUTO_INCREMENT,
-	DMA_NO_INCREMENT
-} dma_auto_increment_t;
 
 typedef enum {
 	DMA_LITTLE_ENDIAN,

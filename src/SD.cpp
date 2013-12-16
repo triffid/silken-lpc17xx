@@ -1,8 +1,39 @@
 #include "SD.h"
 
+#include <cstddef>
+#include <cstdlib>
+
+#include "platform_utils.h"
+
+#include "mri.h"
+#include "min-printf.h"
+
 #define CMD_TIMEOUT 32
 #define READ_TIMEOUT 512
 #define WRITE_TIMEOUT 512
+
+enum {
+	SD_READ_STATUS_START,
+	SD_READ_WAIT_CMD_RESPONSE,
+	SD_READ_STATUS_WAIT_TRAN,
+	SD_READ_STATUS_DMA,
+	SD_READ_STATUS_CHECKSUM
+} SD_READ_STATUS;
+
+enum {
+	SD_WRITE_STATUS_START,
+	SD_WRITE_WAIT_CMD_RESPONSE,
+	SD_WRITE_STATUS_DMA,
+	SD_WRITE_STATUS_WAIT_BSY
+} SD_WRITE_STATUS;
+
+typedef enum {
+	SD_FLAG_IDLE     = 0,
+	SD_FLAG_RUNNING  = 1,
+	SD_FLAG_ERROR    = 2,
+	SD_FLAG_WAIT_BSY = 4,
+	SD_FLAG_REQ_WORK = 8
+} SD_WORK_FLAGS;
 
 #define SD_HIGH_CAPACITY (1<<30)
 
@@ -121,20 +152,27 @@ static int sd_cmdx(SPI* spi, int cmd, uint32_t arg)
 			uint8_t checksum;
 		};
 		uint8_t packet[10];
-	} spi_cmd0;
+	} spi_cmd;
 	
 	spi->begin_transaction();
 	
-	spi_cmd0.dummy = 0xFFFFFFFF;
+	spi_cmd.dummy = 0xFFFFFFFF;
 	
-	spi_cmd0.cmd = 0x40 | cmd;
-	spi_cmd0.arg = htonl(arg);
+	spi_cmd.cmd = 0x40 | cmd;
+	spi_cmd.arg = htonl(arg);
 	if (cmd == 8)
-		spi_cmd0.checksum = 0x87;
+		spi_cmd.checksum = 0x87;
 	else
-		spi_cmd0.checksum = 0x95;
+		spi_cmd.checksum = 0x95;
+
+	printf("spi_cmdx Send: ");
+	for (uint32_t q = 0; q < sizeof(spi_cmd); q++)
+		printf("0x%X ", spi_cmd.packet[q]);
+	printf("\n");
 	
-	spi->send_block(spi_cmd0.packet, sizeof(spi_cmd0));
+	spi->send_block(spi_cmd.packet, sizeof(spi_cmd));
+
+	printf("         Recv: ");
 	
 	int i;
 	uint8_t r;
@@ -142,8 +180,10 @@ static int sd_cmdx(SPI* spi, int cmd, uint32_t arg)
 	{
 		if (((r = spi->transfer(0xFF)) & 0x80) == 0)
 			break;
+		printf("0x%X ", r);
 	}
-	
+	printf("0x%X\n", r);
+
 	if (i >= CMD_TIMEOUT)
 		// error: cmd failed
 		return -1;
@@ -167,6 +207,11 @@ static int sd_response(SPI* spi, void* buf, int size)
 	while (b[0] == 0xFF);
 	
 	spi->recv_block(b + 1, size - 1, 0xFF);
+
+	printf("    RecvBlock: ");
+	for (int q = 0; q < size; q++)
+		printf("0x%X%c", b[q], ((q & 31) == 31)?'\n':' ');
+	printf("\n");
 	
 	return size;
 }
@@ -231,7 +276,7 @@ static int cmd58(SPI* spi, uint32_t* ocr)
 	
 	int r;
 	
-	if ((r = sd_cmdx(spi, 58, 0)) != 1)
+	if ((r = sd_cmdx(spi, 58, 0)) & 0x7E)
 		return -1;
 	
 	if (sd_response(spi, buf.b, 4) < 0)
@@ -303,6 +348,21 @@ SD::SD(SPI* spi)
 	this->spi = spi;
 	
 	card_type = SD_TYPE_NONE;
+	sector_count = 0;
+
+	txm = 0xFFFFFFFF;
+	dma_txmem.setup(&txm, 4);
+	dma_txmem.auto_increment = DMA_NO_INCREMENT;
+
+	dma_tx.set_source(&dma_txmem);
+	dma_tx.set_destination(this);
+
+	dma_rx.set_source(this);
+	dma_rx.set_destination(&dma_rxmem);
+
+	work_stack = NULL;
+
+	work_flags = SD_FLAG_IDLE;
 }
 
 int SD::init()
@@ -336,27 +396,31 @@ int SD::init()
 	
 	// TODO: support MMC
 	if (r != 1)
-		return -1;
+		return -2;
 	
 	/* 
 	 * acmd41
 	 */
 	r = acmd41(spi);
 	if (r != 0)
-		return -1;
+		return -3;
 	
 	/*
 	 * CMD58
 	 */
 	uint32_t ocr;
 	
+// 	__debugbreak();
 	do
 	{
 		r = cmd58(spi, &ocr);
+
+		if (r & 0x7E)
+			return -4;
 		
 		if ((ocr & (1<<20)) == 0)
 			// error: card does not support 3.2-3.3v!
-			return -1;
+			return -5;
 		
 		if (ocr & SD_HIGH_CAPACITY)
 			card_type = SD_TYPE_SDHC;
@@ -384,4 +448,233 @@ int SD::init()
 	cmd10(spi, &cid);
 	
 	return 1;
+}
+
+void SD::on_idle()
+{
+// 	printf("%d", work_flags & (SD_FLAG_RUNNING | SD_FLAG_REQ_WORK));
+	if ((work_flags & (SD_FLAG_RUNNING | SD_FLAG_REQ_WORK)) == (SD_FLAG_RUNNING | SD_FLAG_REQ_WORK))
+		work_stack_work();
+}
+
+SD_CARD_TYPE SD::get_type()
+{
+	return card_type;
+}
+
+uint32_t SD::n_sectors()
+{
+	return sector_count;
+}
+
+int SD::begin_read(uint32_t sector, void* buf, SD_async_receiver* receiver)
+{
+	sd_work_stack_t* w = (sd_work_stack_t*) malloc(sizeof(sd_work_stack_t));
+
+	w->action   = SD_WORK_ACTION_READ;
+	w->buf      = buf;
+	w->sector   = sector;
+	w->receiver = receiver;
+	w->status   = SD_READ_STATUS_START;
+	w->next     = NULL;
+
+	sd_work_stack_t* x = work_stack;
+	__disable_irq();
+	if (x)
+	{
+		while (x->next)
+			x = x->next;
+		x->next = w;
+		__enable_irq();
+	}
+	else
+	{
+		work_stack = w;
+		__enable_irq();
+		work_stack_work();
+	}
+
+	work_stack_debug();
+
+	return 0;
+}
+
+void SD::work_stack_work(void)
+{
+	sd_work_stack_t* w = work_stack;
+
+	switch(w->action)
+	{
+		case SD_WORK_ACTION_READ:
+		{
+			switch(w->status)
+			{
+				case SD_READ_STATUS_START:
+				{
+					work_flags |= SD_FLAG_RUNNING;
+
+					uint32_t addr;
+					if (card_type == SD_TYPE_SDHC)
+						addr = w->sector;
+					else if (card_type == SD_TYPE_SD)
+						addr = w->sector << 9;
+					else
+					{
+						work_flags |= SD_FLAG_ERROR;
+						if (w->receiver)
+							w->receiver->sd_read_complete(this, w->sector, w->buf, w->status + 1);
+						// TODO: support MMC
+						return;
+					}
+
+					int r = sd_cmdx(spi, 17, addr);
+					if (r & 0x7E)
+					{
+						work_flags |= SD_FLAG_ERROR;
+						if (w->receiver)
+							w->receiver->sd_read_complete(this, w->sector, w->buf, w->status + 1);
+						// TODO: handle error
+						return;
+					}
+
+					w->status = SD_READ_STATUS_WAIT_TRAN;
+					printf("WAIT TRAN: ");
+					// deliberate fall-through
+				}
+				case SD_READ_STATUS_WAIT_TRAN:
+				{
+					uint8_t r;
+					r = spi->transfer(0xFF);
+					printf("0x%X ", r);
+					if (r != 0xFE)
+					{
+						if (r == 0xFF)
+						{
+							// TODO: schedule work_queue_work maybe 25uS in the future
+// 							request_work(25);
+							work_flags |= SD_FLAG_REQ_WORK;
+						}
+						else
+						{
+							work_flags &= ~SD_FLAG_REQ_WORK;
+							work_flags |= SD_FLAG_ERROR;
+							// error!
+							if (w->receiver)
+								w->receiver->sd_read_complete(this, w->sector, w->buf, w->status + 1);
+						}
+						return;
+					}
+					work_flags &= ~SD_FLAG_REQ_WORK;
+					w->status = SD_READ_STATUS_DMA;
+					// deliberate fall-through
+				}
+				case SD_READ_STATUS_DMA:
+				{
+					work_flags |= SD_FLAG_RUNNING;
+
+					dma_txmem.setup(&txm, 4);
+					dma_txmem.auto_increment = DMA_NO_INCREMENT;
+
+					dma_rxmem.setup(w->buf, 512);
+
+					dma_tx.setup(512);
+					dma_rx.setup(512);
+
+					dma_rx.begin();
+					dma_tx.begin();
+
+					w->status = SD_READ_STATUS_CHECKSUM;
+
+					break;
+				}
+				case SD_READ_STATUS_CHECKSUM:
+					spi->transfer(0xFF);
+					spi->transfer(0xFF);
+
+					work_flags &= ~SD_FLAG_RUNNING;
+
+					switch(work_stack->action)
+					{
+						case SD_WORK_ACTION_READ:
+							if (work_stack->receiver)
+								work_stack->receiver->sd_read_complete(this, work_stack->sector, work_stack->buf, 0);
+							break;
+						case SD_WORK_ACTION_WRITE:
+							if (work_stack->receiver)
+								work_stack->receiver->sd_write_complete(this, work_stack->sector, work_stack->buf, 0);
+							break;
+						default:
+							break;
+					}
+
+					work_stack_pop();
+
+					break;
+			}
+		};
+		break;
+		default:
+			break;
+	}
+}
+
+void SD::work_stack_pop()
+{
+	if (work_stack == NULL)
+	{
+		work_flags &= ~(SD_FLAG_RUNNING | SD_FLAG_REQ_WORK);
+		return;
+	}
+
+	// remove item from stack
+	sd_work_stack_t* w = work_stack;
+	work_stack = w->next;
+
+	// move work stack item to garbage collector stack
+	w->next = gc_stack;
+	gc_stack = w;
+
+	// next item
+	if (work_stack)
+		work_stack_work();
+	else
+		work_flags &= ~(SD_FLAG_RUNNING | SD_FLAG_REQ_WORK);
+
+	work_stack_debug();
+}
+
+void SD::work_stack_debug()
+{
+	sd_work_stack_t* w = work_stack;
+
+	printf("Work Stack:\n");
+	while (w)
+	{
+		printf("\tItem %p:\n", w);
+		printf("\t\tAction: %d\n\t\tsector: %lu\n\t\tbuffer: %p\n\t\tStatus: %d\n\t\tReceiver: %p\n\t\tNext: %p\n", w->action, w->sector, w->buf, w->status, w->receiver, w->next);
+		w = w->next;
+	};
+	printf("End Stack\n");
+}
+
+void SD::dma_begin(DMA* dma, dma_direction_t direction)
+{
+	spi->dma_begin(dma, direction);
+}
+
+void SD::dma_complete(DMA* dma, dma_direction_t direction)
+{
+	spi->dma_complete(dma, direction);
+
+	if (direction == DMA_RECEIVER)
+	{
+
+		// TODO: do something interesting with transferred block
+		work_stack_work();
+	}
+}
+
+void SD::dma_configure(dma_config* config)
+{
+	spi->dma_configure(config);
 }
