@@ -40,6 +40,7 @@
 #include "SPI.h"
 
 #include "platform_utils.h"
+#include "platform_memory.h"
 
 // Serial uart(UART0_TX, UART0_RX, APPBAUD);
 Serial* uart = NULL;
@@ -74,15 +75,17 @@ extern "C" {
 	}
 }
 
-int sd_cmd(SPI* spi, int cmd, uint32_t arg)
+int sd_cmdx(SPI* spi, int cmd, uint32_t arg)
 {
 	union {
 		struct __attribute__ ((packed)) {
+			uint32_t dummy;
 			uint8_t cmd;
 			uint32_t arg;
 			uint8_t checksum;
+			uint8_t dummy1;
 		};
-		uint8_t packet[6];
+		uint8_t packet[11];
 	} spi_cmd0;
 	
 	uint8_t rxbuf[8];
@@ -91,14 +94,17 @@ int sd_cmd(SPI* spi, int cmd, uint32_t arg)
 	
 	spi->begin_transaction();
 	
+	// dummy transfers, not sure why these are necessary but they are
+// 	spi->send_block(rxbuf, 4);
+
+	spi_cmd0.dummy = 0xFFFFFFFF;
+	spi_cmd0.dummy1 = 0xFF;
 	spi_cmd0.cmd = 0x40 | cmd;
 	spi_cmd0.arg = htonl(arg);
-	if (cmd == 0)
-		spi_cmd0.checksum = 0x95;
-	else if (cmd == 8)
+	if (cmd == 8)
 		spi_cmd0.checksum = 0x87;
 	else
-		spi_cmd0.checksum = 0xAA;
+		spi_cmd0.checksum = 0x95;
 	
 	printf("Send: ");
 	
@@ -121,11 +127,24 @@ int sd_cmd(SPI* spi, int cmd, uint32_t arg)
 			break;
 	}
 	
-	spi->end_transaction();
+	if (i >= 8)
+	{
+		printf("Error! CMD failed!\n");
+		for (volatile int z = 1<<18; z; z--);
+		__debugbreak();
+	}
 	
 	printf("\nCMD%d complete!\n", cmd);
 	
 	return rxbuf[i];
+}
+
+int sd_cmd(SPI* spi, int cmd, uint32_t arg)
+{
+	int r = sd_cmdx(spi, cmd, arg);
+	spi->end_transaction();
+	
+	return r;
 }
 
 int sd_cmd_data(SPI* spi, int cmd, uint32_t arg, uint8_t* buf, int buflen)
@@ -143,8 +162,6 @@ int sd_cmd_data(SPI* spi, int cmd, uint32_t arg, uint8_t* buf, int buflen)
 	
 	printf("CMD%d: ", cmd);
 	
-	spi->begin_transaction();
-	
 	spi_cmd0.cmd = 0x40 | cmd;
 	spi_cmd0.arg = htonl(arg);
 	if (cmd == 0)
@@ -161,39 +178,52 @@ int sd_cmd_data(SPI* spi, int cmd, uint32_t arg, uint8_t* buf, int buflen)
 		printf("0x%X ", spi_cmd0.packet[j]);
 	}
 	
-	spi->send_block(spi_cmd0.packet, sizeof(spi_cmd0));
+	spi->begin_transaction();
 	
-	printf("Recv: ");
-	
-	// 	spi->recv_block(rxbuf, 8, 0xFF);
-	int i;
-	for (i = 0; i < 8; i++)
-	{
-		rxbuf[i] = spi->transfer(0xFF);
-		printf("0x%X ", rxbuf[i]);
-		if (rxbuf[i] != 0xFF)
-			break;
-	}
-	
-	// read data
-	for (i = 0; i != 0xFE; i = spi->transfer(0xFF));
-	spi->recv_block(buf, buflen);
+		spi->send_block(spi_cmd0.packet, sizeof(spi_cmd0));
+		
+		printf("Recv: ");
+		
+		int i;
+		for (i = 0; i < 8; i++)
+		{
+			rxbuf[i] = spi->transfer(0xFF);
+			printf("0x%X ", rxbuf[i]);
+			if (rxbuf[i] != 0xFF)
+				break;
+			if (i == 7)
+				return -1;
+		}
+		
+		printf("\n");
+		
+		// read data
+		for (i = 0; i != 0xFE; i = spi->transfer(0xFF));
+		
+		spi->recv_block(buf, buflen, 0xFF);
 	
 	spi->end_transaction();
 	
 	printf("\nCMD%d complete!\n", cmd);
 	
-	return rxbuf[i];
+	return rxbuf[0];
 }
 
 int sd_cmd8(SPI* spi)
 {
 	uint8_t buf[4];
-	int r = sd_cmd(spi, 8, 0x1AA);
-	spi->recv_block(buf, 4, 0xFF);
+	
+	int r = sd_cmdx(spi, 8, 0x1AA);
+	
+		spi->recv_block(buf, 4, 0xFF);
+	
+	spi->end_transaction();
+	
 	for (int i = 0; i < 4; i++)
 		printf("0x%X ", buf[i]);
+	
 	printf("\n");
+	
 	return r;
 }
 
@@ -214,24 +244,26 @@ int sd_cmd58(SPI* spi)
 	
 	printf("CMD58: ");
 	
-	spi->begin_transaction();
-	
 	printf("Send: ");
 	
 	for (int i = 0; i < 6; i++)
 		printf("0x%X ", rxbuf.rx[i]);
+		
+	spi->begin_transaction();
+		
+		spi->send_block(rxbuf.rx, 6);
+		
+		printf("Recv: ");
+		
+		rxbuf.rx[0] = 0xFF;
+		while (rxbuf.rx[0] == 0xFF)
+		{
+			rxbuf.rx[0] = spi->transfer(0xFF);
+			printf("0x%X ", rxbuf.rx[0]);
+		}
+		spi->recv_block(rxbuf.rx + 1, 4, 0xFF);
 	
-	spi->send_block(rxbuf.rx, 6);
-	
-	printf("Recv: ");
-	
-	rxbuf.rx[0] = 0xFF;
-	while (rxbuf.rx[0] == 0xFF)
-	{
-		rxbuf.rx[0] = spi->transfer(0xFF);
-		printf("0x%X ", rxbuf.rx[0]);
-	}
-	spi->recv_block(rxbuf.rx + 1, 4, 0xFF);
+	spi->end_transaction();
 	
 	for (int i = 0; i < 4; i++)
 		printf("0x%X ", rxbuf.rx[i + 1]);
@@ -272,60 +304,121 @@ int sd_cmd58(SPI* spi)
 	if (ocr & (1<<15))
 		printf("\t2.7 - 2.8v\n");
 	
-	spi->end_transaction();
-	
 	return rxbuf.response;
 }
+
+#define USE_DMA
 
 int sd_recv_data(SPI* spi, uint8_t* buf, int buflen)
 {
 	buf[0] = 0;
+	int r;
 	
 	printf("Recv block, expect %db... ", buflen);
 	
+	int i = 1<<9;
 	// wait for START TRAN token
 	while (buf[0] != 0xFE)
 	{
 		buf[0] = spi->transfer(0xFF);
 		printf("0x%X ", buf[0]);
+		if (i-- <= 0)
+		{
+			printf("Error! timeout waiting for START TRAN token\n");
+			return -1;
+		}
 	}
+	
+	r = buf[0];
 	
 	printf("Start Tran\n");
 	
 	// receive block
-// 	spi->recv_block(buf, buflen, 0xFF);
+#ifndef USE_DMA
+	spi->recv_block(buf, buflen, 0xFF);
+#endif
 	
-	__debugbreak();
+// 	__debugbreak();
 	
+#ifdef USE_DMA
 	// receive buffer
 	DMA_mem rx(buf, buflen);
 	
 	// transmit "buffer"
-	uint8_t x = 0xFF;
-	DMA_mem tx(&x, buflen);
+	uint32_t x = 0xFFFFFFFF;
+	DMA_mem tx(&x, 4);
+	
 	tx.auto_increment = DMA_NO_INCREMENT;
 	
 	DMA dma_tx(&tx, spi);
 	DMA dma_rx(spi, &rx);
 	
-	dma_rx.begin(512);
-	dma_tx.begin(512);
+	for (int i = 0; i < 512; i++)
+		buf[i] = 0xFF;
 	
-	__debugbreak();
+	dma_rx.setup(512);
+	dma_tx.setup(512);
 	
-	while (dma_rx.running());
+// 	LPC_GPDMA->DMACEnbldChns |= (1<<7) | (1<<6);
+	dma_rx.begin();
+	dma_tx.begin();
 	
+	while (dma_rx.running())
+		__WFI();
+	
+	while (0)
+	{
+// 		dma_tx.debug();
+// 		dma_rx.debug();
+		int t = dma_tx.running();
+		int r = dma_rx.running();
+		printf("tx: %d rx:%d\n\n", t, r);
+		if (r == 0)
+			break;
+	}
+	
+// 	for (volatile int z = 0x7FFFFFFF; z > 0 && dma_rx.running(); z--)
+// 		if ((z & 0xFFFF) == 0)
+// 			dma_rx.debug();
+
+#endif
+	printf("(buf %p)\n", buf);
 	for (int i = 0; i < buflen; i++)
-		printf("0x%X ", buf[i]);
+		printf("0x%X%c", buf[i], (((i & 31) == 31)?'\n':' '));
+
+#ifdef USE_DMA
+// 	dma_tx.debug();
+// 	dma_rx.debug();
+	
+	spi->dma_complete(&dma_tx, DMA_SENDER);
+	spi->dma_complete(&dma_rx, DMA_RECEIVER);
+#endif
 	
 	// consume checksum
 	printf("\n(checksum) 0x%X ", spi->transfer(0xFF));
 	printf(             "0x%X\n", spi->transfer(0xFF));
 	
+	spi->transfer(0xFF);
+	
+// 	spi->end_transaction();
+	
+	return r;
 }
 
 int main()
 {
+	int i = 0;
+	
+	// 3 bits for group, 2 bits subgroup
+	NVIC_SetPriorityGrouping(4);
+	
+	// set all interrupts to low priority
+	for (i = WDT_IRQn; i < CANActivity_IRQn; i++)
+		NVIC_SetPriority((IRQn_Type) i, 31);
+	
+	// UART gets highest priority
+	NVIC_SetPriority(UART0_IRQn, 0);
+	
 	__mriInit("MRI_UART_0 MRI_UART_SHARE MRI_UART_BAUD=1000000");
 	
 	GPIO leds[5] = {
@@ -335,8 +428,6 @@ int main()
 		GPIO(LED4),
 		GPIO(LED5)
 	};
-	
-	int i = 0;
 	
 	for (i = 0; i < N_LEDS; i++)
 	{
@@ -351,28 +442,11 @@ int main()
 	
 	uart->write("Start\n", 6);
 	
-// 	__debugbreak();
-	
 	printf("Start 2\n");
 	
 	setleds(leds, 2);
 	
-	// 	__debugbreak();
 	printf("testing a large string which should hopefully demonstrate whether or not the serial queueing mechanisms are sensible.\nThe length of this string has been extended to overrun the serial transmit buffer.\n");
-
-	if (0)
-	{
-		volatile uint32_t r;
-		i = 10;
-
-		for (;;)
-		{
-			printf("- %d\n", i);
-			setleds(leds, i++);
-			i &= 31;
-			for (r = 0; r < (1<<20); r++);
-		}
-	}
 	
 	SPI* spi = new SPI(SSP1_MOSI, SSP1_MISO, SSP1_SCK, SSP1_SS);
 	
@@ -387,13 +461,26 @@ int main()
 	} while (i == 1);
 	sd_cmd58(spi);
 	
-	uint8_t rxbuf[512];
-	sd_cmd(spi, 17, 0);
-	sd_recv_data(spi, rxbuf, 512);
-
+	spi->set_frequency(10000000);
+	
+	uint8_t* rxbuf = (uint8_t*) AHB0.alloc(512);
+	
+	sd_cmdx(spi, 17, 0 * 512); sd_recv_data(spi, rxbuf, 512);
+	sd_cmdx(spi, 18, 133 * 512);
+// 	sd_recv_data(spi, rxbuf, 512);
+// 	sd_cmdx(spi, 17, 134 * 512); sd_recv_data(spi, rxbuf, 512);
+	
+	for (i = 0; i < 16; i++)
+		sd_recv_data(spi, rxbuf, 512);
+	
+	sd_cmd(spi, 12, 0);
+	
+	printf("DMA IntStat: %lu\n", *((uint32_t*) 0x50004000));
+	printf("DMA IntTCStat: %lu\n", *((uint32_t*) 0x50004004));
+	printf("DMA IntErrStat: %lu\n", *((uint32_t*) 0x5000400C));
+	
 	for(;;);
 }
-
 
 // 	void NMI_Handler() {
 // 		DEBUG_PRINTF("NMI\n");

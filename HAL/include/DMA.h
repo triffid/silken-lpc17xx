@@ -33,8 +33,9 @@ typedef struct _dma_impl dma_impl;
 class DMA_receiver
 {
 public:
-	virtual void dma_begin(DMA*) = 0;
-	virtual void dma_complete(DMA*) = 0;
+	virtual void dma_begin(DMA*, dma_direction_t) = 0;
+	
+	virtual void dma_complete(DMA*, dma_direction_t) = 0;
 	
 	virtual void dma_configure(dma_config*) = 0;
 	
@@ -54,11 +55,14 @@ public:
 	void set_source(DMA_receiver*);
 	void set_destination(DMA_receiver*);
 	
-	void begin(uint32_t size) __attribute__ ((optimize("O0")));
+	void setup(uint32_t size);
+	void begin();
 	
-	bool running(void);
+	int  running(void);
 	
 	void isr(void);
+	
+	void debug(void);
 
 private:
 	dma_impl* data;
@@ -74,8 +78,8 @@ public:
 		this->auto_increment = DMA_AUTO_INCREMENT;
 	};
 	
-	void dma_begin(DMA*) {};
-	void dma_complete(DMA*) {};
+	void dma_begin(DMA*, dma_direction_t) {};
+	void dma_complete(DMA*, dma_direction_t) {};
 	void dma_configure(dma_config*);
 	
 	void* addr;

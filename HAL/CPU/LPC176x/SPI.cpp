@@ -9,6 +9,8 @@
 #include "gpio.h"
 #include "pins_platform.h"
 
+#include "min-printf.h"
+
 #include "mri.h"
 
 #define uabs(a, b) (((a) >= (b))?((a) - (b)):((b) - (a)))
@@ -26,6 +28,8 @@ struct _spi_platform_data
 	};
 	
 	LPC_SSP_TypeDef* ssp;
+	
+	volatile uint32_t dummy;
 };
 
 SPI::SPI(PinName mosi, PinName miso, PinName sck, PinName ss)
@@ -83,7 +87,7 @@ SPI::SPI(PinName mosi, PinName miso, PinName sck, PinName ss)
 	}
 	
 	data->ssp->CR0   = SSP_DATABIT_8;
-	data->ssp->CR1   = SSP_CR1_SSP_EN | SSP_FRAME_SPI | SSP_MASTER_MODE;
+	data->ssp->CR1   = SSP_FRAME_SPI | SSP_MASTER_MODE;
 	data->ssp->CPSR  = 2;
 	data->ssp->IMSC  = 0;
 	data->ssp->ICR   = SSP_ICR_ROR | SSP_ICR_RT;
@@ -92,13 +96,19 @@ SPI::SPI(PinName mosi, PinName miso, PinName sck, PinName ss)
 	dma_locked = false;
 	
 	// nice slow freq by default
-	set_frequency(10000);
+	set_frequency(400000);
+
+	data->ssp->CR1 |=  SSP_CR1_SSP_EN;
 }
 
 void SPI::set_frequency(uint32_t f)
 {
 	// frequency = PCLK / (CPSR * (SCR + 1))
-	uint32_t pclk = CLKPWR_GetPCLKSEL(data->ssp_index?CLKPWR_PCLKSEL_SSP1:CLKPWR_PCLKSEL_SSP0);
+	uint32_t pclk = CLKPWR_GetPCLK(data->ssp_index?CLKPWR_PCLKSEL_SSP1:CLKPWR_PCLKSEL_SSP0);
+
+	while (data->ssp->SR & SSP_SR_BSY);
+	while (data->ssp->SR & SSP_SR_RNE)
+		data->dummy = data->ssp->DR;
 	
 	/*
 	 * given p and f, solve f = p / [2b * (c + 1)] for b and c, maximising b
@@ -112,8 +122,8 @@ void SPI::set_frequency(uint32_t f)
 	 * 
 	 */
 	
-	int best_b = 0;
-	uint32_t best_f_delta = pclk + f;
+	int best_b = 127;
+	uint32_t best_f_delta = pclk;
 	
 	for (int b = 127; b; b--)
 	{
@@ -143,7 +153,12 @@ void SPI::set_frequency(uint32_t f)
 	if (s & 1) s++;
 	s /= 2;
 	
-	data->ssp->CR0 = (data->ssp->CR0 & ~(0xFF << 8)) | (s - 1) << 8;
+	if (s < 1)
+		s = 1;
+	if (s > 256)
+		s = 256;
+	
+	data->ssp->CR0 = (data->ssp->CR0 & ~(0xFF00)) | (s - 1) << 8;
 	data->ssp->CPSR = 2 * best_b;
 	
 	return;
@@ -166,9 +181,8 @@ void SPI::transfer_block(const uint8_t* tx, uint8_t* rx, int length)
 	while (dma_locked || (data->ssp->SR & SSP_SR_BSY))
 		__WFI();
 	
-	volatile int dummy;
 	while (data->ssp->SR & SSP_SR_RNE)
-		dummy = data->ssp->DR;
+		data->dummy = data->ssp->DR;
 	
 	if (rx == NULL)
 	{
@@ -197,27 +211,31 @@ void SPI::send_block(const uint8_t* tx, int length)
 	while (dma_locked || (data->ssp->SR & SSP_SR_BSY))
 		__WFI();
 	
-	volatile int dummy;
 	while (data->ssp->SR & SSP_SR_RNE)
-		dummy = data->ssp->DR;
+		data->dummy = data->ssp->DR;
 	
 	int i = 0;
-	for (i = 0; i < length;)
+// 	for (i = 0; i < length;)
+// 	{
+// 		int j = 0, k = 0;
+// 		while ((data->ssp->SR & SSP_SR_TNF) && ((i + j) < length) && (j < 8))
+// 			data->ssp->DR = tx[i + j++];
+// 		while (data->ssp->SR & SSP_SR_BSY);
+// 		while (data->ssp->SR & SSP_SR_RNE)
+// 			data->dummy = data->ssp->DR;
+// 		
+// 		i += j;
+// 	}
+	while (i < length)
 	{
-		int j = 0, k = 0;
-		while ((data->ssp->SR & SSP_SR_TNF) && ((i + j) < length) && (j < 8))
-			data->ssp->DR = tx[i + j++];
-		while (data->ssp->SR & SSP_SR_BSY);
+		while ((data->ssp->SR & SSP_SR_TNF) && (i < length))
+			data->ssp->DR = tx[i++];
 		while (data->ssp->SR & SSP_SR_RNE)
-		{
-			dummy = data->ssp->DR;
-			k++;
-		}
-		if (j != k)
-			__debugbreak();
-		
-		i += j;
+			data->dummy = data->ssp->DR;
 	}
+	while ((data->ssp->SR & (SSP_SR_BSY | SSP_SR_TFE)) != SSP_SR_TFE);
+	while (data->ssp->SR & SSP_SR_RNE)
+		data->dummy = data->ssp->DR;
 }
 
 void SPI::recv_block(uint8_t* rx, int length, uint8_t txchar)
@@ -225,9 +243,8 @@ void SPI::recv_block(uint8_t* rx, int length, uint8_t txchar)
 	while (dma_locked || (data->ssp->SR & SSP_SR_BSY))
 		__WFI();
 	
-	volatile int dummy;
 	while (data->ssp->SR & SSP_SR_RNE)
-		dummy = data->ssp->DR;
+		data->dummy = data->ssp->DR;
 	
 	int i = 0;
 	for (i = 0; i < length;)
@@ -248,27 +265,38 @@ void SPI::recv_block(uint8_t* rx, int length, uint8_t txchar)
 	}
 }
 
-void SPI::dma_begin(DMA* dma)
+void SPI::dma_begin(DMA* dma, dma_direction_t direction)
 {
+	if (direction == DMA_SENDER)
+		data->ssp->DMACR |= SSP_DMA_RXDMA_EN;
+	else
+		data->ssp->DMACR |= SSP_DMA_TXDMA_EN;
 }
 
-void SPI::dma_complete(DMA* dma)
+void SPI::dma_complete(DMA* dma, dma_direction_t direction)
 {
+	if (direction == DMA_SENDER)
+		data->ssp->DMACR &= ~SSP_DMA_RXDMA_EN;
+	else
+		data->ssp->DMACR &= ~SSP_DMA_TXDMA_EN;
 }
 
 void SPI::dma_configure(dma_config* config)
 {
 	config->mem_or_peripheral = DMA_PERIPHERAL;
 	
-	if (config->direction == DMA_SENDER && data->ssp_index == 0)
+	if      ((config->direction == DMA_SENDER  ) && (data->ssp_index == 0))
 		config->peripheral_index = 1; // SSP0 RX, from UM10360 table 543
-	else if (config->direction == DMA_RECEIVER && data->ssp_index == 0)
+	else if ((config->direction == DMA_RECEIVER) && (data->ssp_index == 0))
 		config->peripheral_index = 0; // SSP0 TX
-	else if (config->direction == DMA_RECEIVER && data->ssp_index == 1)
+	else if ((config->direction == DMA_SENDER  ) && (data->ssp_index == 1))
 		config->peripheral_index = 3; // SSP1 RX
-	else if (config->direction == DMA_RECEIVER && data->ssp_index == 1)
+	else if ((config->direction == DMA_RECEIVER) && (data->ssp_index == 1))
 		config->peripheral_index = 2; // SSP1 TX
+	else
+		__debugbreak();
 	
+	config->mem_buf = (void*) &data->ssp->DR;
 	config->endianness = DMA_LITTLE_ENDIAN;
 	config->word_size = DMA_WS_8BIT;
 	config->burst_size = DMA_BS_8;

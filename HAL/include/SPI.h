@@ -27,8 +27,8 @@ public:
 	void    recv_block(      uint8_t* rx, int length, uint8_t txchar);
 	
 	// implementation of DMA_receiver
-	void    dma_begin(DMA*);
-	void    dma_complete(DMA*);
+	void    dma_begin(DMA*, dma_direction_t);
+	void    dma_complete(DMA*, dma_direction_t);
 	void    dma_configure(dma_config*);
 private:
 	spi_platform_data* data;

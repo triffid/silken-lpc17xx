@@ -97,7 +97,7 @@ int _hex_write(uint32_t i)
 	int q;
 	const char *alpha = "0123456789ABCDEF";
 	if (i) {
-		for (q = 0; i && ((i & 0xF0000000) == 0); i <<= 4, q++);
+		for (q = 0; i && ((i & 0xF0000000) == 0) && (q < 6); i <<= 4, q++);
 		for(
 			length = 0;
 			i || (q < 8);
@@ -108,6 +108,7 @@ int _hex_write(uint32_t i)
 		}
 	}
 	else {
+		printf_buf[bufp++] = '0';
 		printf_buf[bufp++] = '0';
 	}
 	printf_buf[bufp] = 0;
