@@ -39,6 +39,7 @@
 
 #include "SPI.h"
 #include "SD.h"
+#include "fat.h"
 
 #include "platform_utils.h"
 #include "platform_memory.h"
@@ -486,11 +487,22 @@ int main()
 			__WFI();
 	}
 
-	uint8_t* rbuf = (uint8_t*) AHB0.alloc(512);
+// 	uint8_t* rbuf = (uint8_t*) AHB0.alloc(512);
 
-	sd->begin_read(0, rbuf, &sar_dumper);
+// 	sd->begin_read(0, rbuf, &sar_dumper);
 // 	for (int z = 0; z < 32; z++)
 // 		sd->begin_read(133 + z, rbuf, &sar_dumper);
+
+	Fat* fat = new Fat();
+
+	_fat_mount_ioresult fmount;
+
+	fat->f_mount(&fmount, sd);
+
+	while (fmount.fini == 0)
+		sd->on_idle();
+
+	printf("Mounted!\n");
 
 	for (;;)
 		sd->on_idle();

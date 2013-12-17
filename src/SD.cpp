@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdlib>
+#include <cstdio>
 
 #include "platform_utils.h"
 
@@ -38,110 +39,6 @@ typedef enum {
 #define SD_HIGH_CAPACITY (1<<30)
 
 #include "platform_utils.h"
-
-typedef struct __attribute__ ((packed))
-{
-	uint8_t  csd_structure      :2;
-	uint8_t  reserved6          :6;
-
-	uint8_t  taac               :8;
-	uint8_t  nsac               :8;
-	uint8_t  tran_speed         :8;
-
-	uint16_t ccc                :12;
-	uint16_t read_bl_len        :4;
-
-	uint32_t read_bl_partial    :1;
-	uint32_t write_blk_misalign :1;
-	uint32_t read_blk_misalign  :1;
-	uint32_t dsr_imp            :1;
-	uint32_t reserved5          :6;
-	uint32_t c_size             :22;
-
-	uint32_t reserved4          :1;
-	uint32_t erase_blk_en       :1;
-	uint32_t sector_size        :7;
-	uint32_t wp_grp_size        :7;
-
-	uint32_t wp_grp_enable      :1;
-	uint32_t reserved3          :2;
-	uint32_t r2w_factor         :3;
-	uint32_t write_bl_len       :4;
-	uint32_t write_bl_partial   :1;
-	uint32_t reserved2          :5;
-
-	uint32_t file_format_group  :1;
-	uint32_t copy               :1;
-	uint32_t perm_write_protect :1;
-	uint32_t tmp_write_protect  :1;
-	uint32_t file_format        :2;
-	uint32_t reserved1          :2;
-
-	uint32_t crc                :7;
-	uint32_t reserved0          :1;
-} CSD_v2_type;
-
-typedef struct __attribute__ ((packed))
-{
-	uint32_t csd_structure      :2;
-	uint32_t reserved6          :6;
-
-	uint32_t taac               :8;
-	uint32_t nsac               :8;
-	uint32_t tran_speed         :8;
-
-	uint32_t ccc                :12;
-	uint32_t read_bl_len        :4;
-
-	uint32_t read_bl_partial    :1;
-	uint32_t write_blk_misalign :1;
-	uint32_t read_blk_misalign  :1;
-	uint32_t dsr_imp            :1;
-
-	uint32_t reserved4          :2;
-	uint32_t c_size             :12;
-
-	uint32_t vdd_r_curr_min     :3;
-	uint32_t vdd_r_curr_max     :3;
-	uint32_t vdd_w_curr_min     :3;
-	uint32_t vdd_w_curr_max     :3;
-	uint32_t c_size_mult        :3;
-
-	uint32_t erase_blk_en       :1;
-	uint32_t sector_size        :7;
-	uint32_t wp_grp_size        :7;
-
-	uint32_t wp_grp_enable      :1;
-	uint32_t reserved3          :2;
-	uint32_t r2w_factor         :3;
-	uint32_t write_bl_len       :4;
-	uint32_t write_bl_partial   :1;
-	uint32_t reserved2          :5;
-
-	uint32_t file_format_group  :1;
-	uint32_t copy               :1;
-	uint32_t perm_write_protect :1;
-	uint32_t tmp_write_protect  :1;
-	uint32_t file_format        :2;
-	uint32_t reserved1          :2;
-
-	uint32_t crc                :7;
-	uint32_t reserved0          :1;
-} CSD_v1_type;
-
-typedef struct {
-	uint8_t  reserved0          :1;
-	uint8_t  crc                :7;
-	
-	uint16_t mdt                :12;
-	uint16_t reserved1          :4;
-	
-	uint32_t psn;
-	uint8_t  prv;
-	uint8_t  pnm[5];
-	uint16_t oid;
-	uint8_t  mid;
-} CID_type;
 
 static uint32_t ext_bits(uint8_t *data, uint32_t msb, uint32_t lsb) {
 	uint32_t bits = 0;
