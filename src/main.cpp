@@ -417,6 +417,11 @@ class sar : public SD_async_receiver
 			for (int i = 0; i < 512; i++)
 				printf("0x%X%c", b[i], ((i & 31) == 31)?'\n':' ');
 		}
+
+		if (sector == 0)
+			sd->begin_read(133, buf, this);
+		else if (sector >= 133 && sector <= 150)
+			sd->begin_read(sector + 1, buf, this);
 	};
 
 	void sd_write_complete(SD* sd, uint32_t sector, void* buf, int err)
@@ -484,7 +489,8 @@ int main()
 	uint8_t* rbuf = (uint8_t*) AHB0.alloc(512);
 
 	sd->begin_read(0, rbuf, &sar_dumper);
-	sd->begin_read(133, rbuf, &sar_dumper);
+// 	for (int z = 0; z < 32; z++)
+// 		sd->begin_read(133 + z, rbuf, &sar_dumper);
 
 	for (;;)
 		sd->on_idle();

@@ -158,7 +158,7 @@ void SPI::set_frequency(uint32_t f)
 	if (s > 256)
 		s = 256;
 	
-	data->ssp->CR0 = (data->ssp->CR0 & ~(0xFF00)) | (s - 1) << 8;
+	data->ssp->CR0 = (data->ssp->CR0 & ~(0xFF << 8)) | (s - 1) << 8;
 	data->ssp->CPSR = 2 * best_b;
 	
 	return;
@@ -215,27 +215,14 @@ void SPI::send_block(const uint8_t* tx, int length)
 		data->dummy = data->ssp->DR;
 	
 	int i = 0;
-// 	for (i = 0; i < length;)
-// 	{
-// 		int j = 0, k = 0;
-// 		while ((data->ssp->SR & SSP_SR_TNF) && ((i + j) < length) && (j < 8))
-// 			data->ssp->DR = tx[i + j++];
-// 		while (data->ssp->SR & SSP_SR_BSY);
-// 		while (data->ssp->SR & SSP_SR_RNE)
-// 			data->dummy = data->ssp->DR;
-// 		
-// 		i += j;
-// 	}
 	while (i < length)
 	{
-		while ((data->ssp->SR & SSP_SR_TNF) && (i < length))
-			data->ssp->DR = tx[i++];
-		while (data->ssp->SR & SSP_SR_RNE)
-			data->dummy = data->ssp->DR;
-	}
-	while ((data->ssp->SR & (SSP_SR_BSY | SSP_SR_TFE)) != SSP_SR_TFE);
-	while (data->ssp->SR & SSP_SR_RNE)
+		data->ssp->DR = tx[i];
+		while (data->ssp->SR & SSP_SR_BSY);
+		while ((data->ssp->SR & SSP_SR_RNE) == 0);
 		data->dummy = data->ssp->DR;
+		i++;
+	}
 }
 
 void SPI::recv_block(uint8_t* rx, int length, uint8_t txchar)
@@ -247,26 +234,20 @@ void SPI::recv_block(uint8_t* rx, int length, uint8_t txchar)
 		data->dummy = data->ssp->DR;
 	
 	int i = 0;
-	for (i = 0; i < length;)
+	while (i < length)
 	{
-		int j = 0, k = 0;
-		while ((data->ssp->SR & SSP_SR_TNF) && (i + j < length) && (j < 8))
-		{
-			data->ssp->DR = txchar;
-			j++;
-		}
+		data->ssp->DR = txchar;
 		while (data->ssp->SR & SSP_SR_BSY);
-		while (data->ssp->SR & SSP_SR_RNE)
-			rx[i + k++] = data->ssp->DR;
-		if (j != k)
-			__debugbreak();
-		
-		i += j;
+		while ((data->ssp->SR & SSP_SR_RNE) == 0);
+		rx[i] = data->ssp->DR;
+		i++;
 	}
 }
 
 void SPI::dma_begin(DMA* dma, dma_direction_t direction)
 {
+	dma_locked = 1;
+
 	if (direction == DMA_SENDER)
 		data->ssp->DMACR |= SSP_DMA_RXDMA_EN;
 	else
@@ -279,6 +260,8 @@ void SPI::dma_complete(DMA* dma, dma_direction_t direction)
 		data->ssp->DMACR &= ~SSP_DMA_RXDMA_EN;
 	else
 		data->ssp->DMACR &= ~SSP_DMA_TXDMA_EN;
+
+	dma_locked = 0;
 }
 
 void SPI::dma_configure(dma_config* config)

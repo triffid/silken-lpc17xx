@@ -41,91 +41,92 @@ typedef enum {
 
 typedef struct __attribute__ ((packed))
 {
-	uint8_t  reserved0          :1;
-	uint8_t  crc                :7;
-	
-	uint8_t  reserved1          :2;
-	uint8_t  file_format        :2;
-	uint8_t  tmp_write_protect  :1;
-	uint8_t  perm_write_protect :1;
-	uint8_t  copy               :1;
-	uint8_t  file_format_group  :1;
-	
-	uint16_t reserved2          :5;
-	uint16_t write_bl_partial   :1;
-	uint16_t write_bl_len       :4;
-	uint16_t r2w_factor         :3;
-	uint16_t reserved3          :2;
-	uint16_t wp_grp_enable      :1;
-	
-	uint16_t wp_grp_size        :7;
-	uint16_t sector_size        :7;
-	uint16_t erase_blk_len      :1;
-	uint16_t reserved4          :1;
-	
-	uint32_t c_size             :22;
-	uint32_t reserved5          :6;
-	uint32_t dsr_imp            :1;
-	uint32_t read_blk_misalign  :1;
-	uint32_t write_blk_misalign :1;
-	uint32_t read_bl_partial    :1;
-	
-	uint16_t read_bl_len        :4;
-	uint16_t ccc                :12;
-	
-	uint8_t  tran_speed         :8;
-	uint8_t  nsac               :8;
-	uint8_t  taac               :8;
-	
-	uint8_t  reserved6          :6;
 	uint8_t  csd_structure      :2;
+	uint8_t  reserved6          :6;
+
+	uint8_t  taac               :8;
+	uint8_t  nsac               :8;
+	uint8_t  tran_speed         :8;
+
+	uint16_t ccc                :12;
+	uint16_t read_bl_len        :4;
+
+	uint32_t read_bl_partial    :1;
+	uint32_t write_blk_misalign :1;
+	uint32_t read_blk_misalign  :1;
+	uint32_t dsr_imp            :1;
+	uint32_t reserved5          :6;
+	uint32_t c_size             :22;
+
+	uint32_t reserved4          :1;
+	uint32_t erase_blk_en       :1;
+	uint32_t sector_size        :7;
+	uint32_t wp_grp_size        :7;
+
+	uint32_t wp_grp_enable      :1;
+	uint32_t reserved3          :2;
+	uint32_t r2w_factor         :3;
+	uint32_t write_bl_len       :4;
+	uint32_t write_bl_partial   :1;
+	uint32_t reserved2          :5;
+
+	uint32_t file_format_group  :1;
+	uint32_t copy               :1;
+	uint32_t perm_write_protect :1;
+	uint32_t tmp_write_protect  :1;
+	uint32_t file_format        :2;
+	uint32_t reserved1          :2;
+
+	uint32_t crc                :7;
+	uint32_t reserved0          :1;
 } CSD_v2_type;
 
 typedef struct __attribute__ ((packed))
 {
-	uint8_t  reserved0          :1;
-	uint8_t  crc                :7;
-	
-	uint8_t  reserved1          :2;
-	uint8_t  file_format        :2;
-	uint8_t  tmp_write_protect  :1;
-	uint8_t  perm_write_protect :1;
-	uint8_t  copy               :1;
-	uint8_t  file_format_group  :1;
-	
-	uint16_t reserved2          :5;
-	uint16_t write_bl_partial   :1;
-	uint16_t write_bl_len       :4;
-	uint16_t r2w_factor         :3;
-	uint16_t reserved3          :2;
-	uint16_t wp_grp_enable      :1;
-	
-	uint32_t wp_grp_size        :7;
-	uint32_t sector_size        :7;
-	uint32_t erase_blk_len      :1;
-	uint32_t c_size_mult        :3;
-	uint32_t vdd_w_curr_max     :3;
-	uint32_t vdd_w_curr_min     :3;
-	uint32_t vdd_r_curr_max     :3;
-	uint32_t vdd_r_curr_min     :3;
-	
-	uint32_t c_size             :12;
-	uint32_t reserved4          :2;
-	
-	uint32_t dsr_imp            :1;
-	uint32_t read_blk_misalign  :1;
-	uint32_t write_blk_misalign :1;
+	uint32_t csd_structure      :2;
+	uint32_t reserved6          :6;
+
+	uint32_t taac               :8;
+	uint32_t nsac               :8;
+	uint32_t tran_speed         :8;
+
+	uint32_t ccc                :12;
+	uint32_t read_bl_len        :4;
+
 	uint32_t read_bl_partial    :1;
-	
-	uint16_t read_bl_len        :4;
-	uint16_t ccc                :12;
-	
-	uint8_t  tran_speed         :8;
-	uint8_t  nsac               :8;
-	uint8_t  taac               :8;
-	
-	uint8_t  reserved6          :6;
-	uint8_t  csd_structure      :2;
+	uint32_t write_blk_misalign :1;
+	uint32_t read_blk_misalign  :1;
+	uint32_t dsr_imp            :1;
+
+	uint32_t reserved4          :2;
+	uint32_t c_size             :12;
+
+	uint32_t vdd_r_curr_min     :3;
+	uint32_t vdd_r_curr_max     :3;
+	uint32_t vdd_w_curr_min     :3;
+	uint32_t vdd_w_curr_max     :3;
+	uint32_t c_size_mult        :3;
+
+	uint32_t erase_blk_en       :1;
+	uint32_t sector_size        :7;
+	uint32_t wp_grp_size        :7;
+
+	uint32_t wp_grp_enable      :1;
+	uint32_t reserved3          :2;
+	uint32_t r2w_factor         :3;
+	uint32_t write_bl_len       :4;
+	uint32_t write_bl_partial   :1;
+	uint32_t reserved2          :5;
+
+	uint32_t file_format_group  :1;
+	uint32_t copy               :1;
+	uint32_t perm_write_protect :1;
+	uint32_t tmp_write_protect  :1;
+	uint32_t file_format        :2;
+	uint32_t reserved1          :2;
+
+	uint32_t crc                :7;
+	uint32_t reserved0          :1;
 } CSD_v1_type;
 
 typedef struct {
@@ -141,6 +142,19 @@ typedef struct {
 	uint16_t oid;
 	uint8_t  mid;
 } CID_type;
+
+static uint32_t ext_bits(uint8_t *data, uint32_t msb, uint32_t lsb) {
+	uint32_t bits = 0;
+	uint32_t size = 1 + msb - lsb;
+	for(uint32_t i=0; i<size; i++) {
+		uint32_t position = lsb + i;
+		uint32_t byte = 15 - (position >> 3);
+		uint32_t bit = position & 0x7;
+		uint32_t value = (data[byte] >> bit) & 1;
+		bits |= value << i;
+	}
+	return bits;
+}
 
 static int sd_cmdx(SPI* spi, int cmd, uint32_t arg)
 {
@@ -165,14 +179,14 @@ static int sd_cmdx(SPI* spi, int cmd, uint32_t arg)
 	else
 		spi_cmd.checksum = 0x95;
 
-	printf("spi_cmdx Send: ");
-	for (uint32_t q = 0; q < sizeof(spi_cmd); q++)
-		printf("0x%X ", spi_cmd.packet[q]);
-	printf("\n");
+// 	printf("spi_cmdx Send: ");
+// 	for (uint32_t q = 0; q < sizeof(spi_cmd); q++)
+// 		printf("0x%X ", spi_cmd.packet[q]);
+// 	printf("\n");
 	
 	spi->send_block(spi_cmd.packet, sizeof(spi_cmd));
 
-	printf("         Recv: ");
+// 	printf("         Recv: ");
 	
 	int i;
 	uint8_t r;
@@ -180,9 +194,9 @@ static int sd_cmdx(SPI* spi, int cmd, uint32_t arg)
 	{
 		if (((r = spi->transfer(0xFF)) & 0x80) == 0)
 			break;
-		printf("0x%X ", r);
+// 		printf("0x%X ", r);
 	}
-	printf("0x%X\n", r);
+// 	printf("0x%X\n", r);
 
 	if (i >= CMD_TIMEOUT)
 		// error: cmd failed
@@ -200,6 +214,7 @@ static int sd_response(SPI* spi, void* buf, int size)
 	do {
 		b[0] = spi->transfer(0xFF);
 		
+// 		printf("<0x%x> ", b[0]);
 		if (--i <= 0)
 			// CMD timeout
 			return -1;
@@ -208,11 +223,37 @@ static int sd_response(SPI* spi, void* buf, int size)
 	
 	spi->recv_block(b + 1, size - 1, 0xFF);
 
-	printf("    RecvBlock: ");
-	for (int q = 0; q < size; q++)
-		printf("0x%X%c", b[q], ((q & 31) == 31)?'\n':' ');
-	printf("\n");
+// 	printf("    RecvBlock: ");
+// 	for (int q = 0; q < size; q++)
+// 		printf("0x%X%c", b[q], ((q & 31) == 31)?'\n':' ');
+// 	printf("\n");
 	
+	return size;
+}
+
+static int sd_data(SPI* spi, void* buf, int size)
+{
+	uint8_t* b = (uint8_t*) buf;
+
+	int i = CMD_TIMEOUT;
+
+	do {
+		b[0] = spi->transfer(0xFF);
+
+// 		printf("<0x%x> ", b[0]);
+		if (--i <= 0)
+			// CMD timeout
+			return -1;
+	}
+	while (b[0] != 0xFE);
+
+	spi->recv_block(b, size, 0xFF);
+
+// 	printf("    RecvBlock: ");
+// 	for (int q = 0; q < size; q++)
+// 		printf("0x%X%c", b[q], ((q & 31) == 31)?'\n':' ');
+// 	printf("\n");
+
 	return size;
 }
 
@@ -314,32 +355,44 @@ static int acmd41(SPI* spi)
 static int cmd9(SPI* spi, void* CSD)
 {
 	int r;
-	
+
 	r = sd_cmdx(spi, 9, 0);
-	if (r != 1)
+	if (r & 0x7E)
+	{
+		spi->end_transaction();
 		return -1;
-	
-	if (sd_response(spi, CSD, 16) < 0)
+	}
+
+	if (sd_data(spi, CSD, 16) < 0)
+	{
+		spi->end_transaction();
 		return -1;
-	
+	}
+
 	spi->end_transaction();
-	
+
 	return r;
 }
 
 static int cmd10(SPI* spi, void* CID)
 {
 	int r;
-	
+
 	r = sd_cmdx(spi, 10, 0);
-	if (r != 1)
+	if (r & 0x7E)
+	{
+		spi->end_transaction();
 		return -1;
-	
-	if (sd_response(spi, CID, 16) < 0)
+	}
+
+	if (sd_data(spi, CID, 16) < 0)
+	{
+		spi->end_transaction();
 		return -1;
-	
+	}
+
 	spi->end_transaction();
-	
+
 	return r;
 }
 
@@ -361,6 +414,7 @@ SD::SD(SPI* spi)
 	dma_rx.set_destination(&dma_rxmem);
 
 	work_stack = NULL;
+	gc_stack   = NULL;
 
 	work_flags = SD_FLAG_IDLE;
 }
@@ -432,29 +486,56 @@ int SD::init()
 	// card is fully started, now boost frequency	
 	spi->set_frequency(10000000);
 
-	union {
-		CSD_v1_type csd_v1;
-		CSD_v2_type csd_v2;
-		uint8_t b[16];
-	} csd;
+	uint8_t csd[16];
 	
-	cmd9(spi, &csd);
+	r = cmd9(spi, csd);
+	if (r & 0x7E)
+		return -6;
+
+	if (ext_bits(csd, 127, 126) == 0)
+	{
+		sector_count = (ext_bits(csd, 75, 62) + 1)
+		       * (1 << (ext_bits(csd, 49, 47) + 2))
+		       * (1 << (ext_bits(csd, 83, 80) - 9));
+	}
+	else if (ext_bits(csd, 127, 126) == 1)
+	{
+		sector_count = (ext_bits(csd, 69, 48) + 1) * 1024;
+	}
+	else
+		return -7;
 	
-	union {
-		CID_type cid;
-		uint8_t b[16];
-	} cid;
-	
-	cmd10(spi, &cid);
+	printf("\nTotal Sectors: %lu\n", sector_count);
+	printf("Card Size: %lu.%lu%c\n", (sector_count >= 2097152)?(sector_count / 2097152):(sector_count / 2048), (sector_count >= 2097152)?((sector_count / 209715) % 10):((sector_count / 205) % 10), (sector_count >= 2097152)?('G'):('M') );
+
+	uint8_t cid[16];
+
+	r = cmd10(spi, cid);
+	if (r & 0x7E)
+		return -8;
+
+	printf("MID %lu (%c%c) %c%c%c%c%c s/n:%lu date:%lu/%lu\n",
+		ext_bits(cid, 127, 120),
+		   (int) ext_bits(cid, 119, 112), (int) ext_bits(cid, 111, 104),
+		   (int) ext_bits(cid, 103,  96), (int) ext_bits(cid,  95,  88), (int) ext_bits(cid,  87,  80), (int) ext_bits(cid,  79,  72), (int) ext_bits(cid,  71,  64),
+		ext_bits(cid,  55,  24),
+		ext_bits(cid,  11,   8), ext_bits(cid,  19,  12) + 2000
+	);
 	
 	return 1;
 }
 
 void SD::on_idle()
 {
-// 	printf("%d", work_flags & (SD_FLAG_RUNNING | SD_FLAG_REQ_WORK));
 	if ((work_flags & (SD_FLAG_RUNNING | SD_FLAG_REQ_WORK)) == (SD_FLAG_RUNNING | SD_FLAG_REQ_WORK))
 		work_stack_work();
+
+	while (gc_stack)
+	{
+		sd_work_stack_t* w = gc_stack;
+		gc_stack = w->next;
+		free(w);
+	}
 }
 
 SD_CARD_TYPE SD::get_type()
@@ -469,7 +550,15 @@ uint32_t SD::n_sectors()
 
 int SD::begin_read(uint32_t sector, void* buf, SD_async_receiver* receiver)
 {
-	sd_work_stack_t* w = (sd_work_stack_t*) malloc(sizeof(sd_work_stack_t));
+	sd_work_stack_t* w;
+	if (gc_stack)
+	{
+		// reuse existing item from gc stack to reduce calls to malloc/free
+		w = gc_stack;
+		gc_stack = w->next;
+	}
+	else
+		w = (sd_work_stack_t*) malloc(sizeof(sd_work_stack_t));
 
 	w->action   = SD_WORK_ACTION_READ;
 	w->buf      = buf;
@@ -494,7 +583,7 @@ int SD::begin_read(uint32_t sector, void* buf, SD_async_receiver* receiver)
 		work_stack_work();
 	}
 
-	work_stack_debug();
+// 	work_stack_debug();
 
 	return 0;
 }
@@ -591,23 +680,14 @@ void SD::work_stack_work(void)
 					spi->transfer(0xFF);
 					spi->transfer(0xFF);
 
-					work_flags &= ~SD_FLAG_RUNNING;
+					sd_work_stack_t* w = work_stack;
 
-					switch(work_stack->action)
-					{
-						case SD_WORK_ACTION_READ:
-							if (work_stack->receiver)
-								work_stack->receiver->sd_read_complete(this, work_stack->sector, work_stack->buf, 0);
-							break;
-						case SD_WORK_ACTION_WRITE:
-							if (work_stack->receiver)
-								work_stack->receiver->sd_write_complete(this, work_stack->sector, work_stack->buf, 0);
-							break;
-						default:
-							break;
-					}
-
+					// we must pop first, in case the read_complete event requests another read.
+					// in that case, it's advantageous to have the work item in the GC queue already so it can be reused
 					work_stack_pop();
+
+					if (w->receiver)
+						w->receiver->sd_read_complete(this, w->sector, w->buf, 0);
 
 					break;
 			}
@@ -636,11 +716,11 @@ void SD::work_stack_pop()
 
 	// next item
 	if (work_stack)
-		work_stack_work();
+		work_flags |= SD_FLAG_REQ_WORK;
 	else
 		work_flags &= ~(SD_FLAG_RUNNING | SD_FLAG_REQ_WORK);
 
-	work_stack_debug();
+// 	work_stack_debug();
 }
 
 void SD::work_stack_debug()
