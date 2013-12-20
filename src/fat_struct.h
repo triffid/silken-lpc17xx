@@ -28,80 +28,51 @@ typedef struct __attribute__ ((packed))
 } _fat_bootblock;
 
 /*
- * FAT12 superblock
+ * FAT superblock
  */
 typedef struct __attribute__ ((packed))
 {
-	uint8_t  jump[3];
-	char     oem_id[8];
-	uint16_t bytes_per_sector;		// usually 512
-	uint8_t  sectors_per_cluster;
-	uint16_t num_boot_sectors;		// usually 1
-	uint8_t  num_fats;				// usually 2
-	uint16_t num_root_dir_ents;
-	uint16_t total_sectors;			// 0 if num_sectors > 65535
-	uint8_t  media_id;				// usually 0xF0
-	uint16_t sectors_per_fat;
-	uint16_t sectors_per_track;
-	uint16_t heads;
-	uint16_t hidden_sectors;		// root dir entry? usually 2
-	uint8_t  mbr[480];
-	uint16_t magic;					// always 0xAA55
-} _fat12_volid;
+	// common fields:
+	uint8_t  jump[3];												// 0-2
+	char     oem_id[8];												// 3-10
+	uint16_t bytes_per_sector;		// usually 512					// 11-12
+	uint8_t  sectors_per_cluster;									// 13
+	uint16_t num_boot_sectors;		// usually 1					// 14-15
+	uint8_t  num_fats;				// usually 2					// 16
+	uint16_t num_root_dir_ents;										// 17-18
+	uint16_t total_sectors;			// 0 if num_sectors > 65535		// 19-20
+	uint8_t  media_id;				// usually 0xF0					// 21
+	uint16_t sectors_per_fat;										// 22-23
+	uint16_t sectors_per_track;										// 24-25
+	uint16_t heads;													// 26-27
 
-/*
- * FAT16 superblock
- */
-typedef struct __attribute__ ((packed))
-{
-	uint8_t  jump[3];												// 0-3
-	char     oem_id[8];												// 4-12
-	uint16_t bytes_per_sector;		// usually 512					// 13-14
-	uint8_t  sectors_per_cluster;									// 15
-	uint16_t num_boot_sectors;		// usually 1					// 16-17
-	uint8_t  num_fats;				// usually 2					// 18
-	uint16_t num_root_dir_ents;										// 19-20
-	uint16_t total_sectors;			// 0 if num_sectors > 65535		// 21-22
-	uint8_t  media_id;				// usually 0xF0					// 23
-	uint16_t sectors_per_fat;										// 24-25
-	uint16_t sectors_per_track;										// 26-27
-	uint16_t heads;													// 28-29
-	uint16_t hidden_sectors;		// root dir entry? usually 2	// 30-31
+	uint32_t hidden_sectors;										// 28-31
+	uint32_t total_sectors_32;										// 32-35
 
-	// fat12 legacy superblock ends here
+	union {
+		uint8_t  mbr[474];
 
-	uint32_t total_sectors_32;		// 0 if num_sectors < 65536		// 32-25
-	uint8_t  logical_drive_num;										// 36
-	uint8_t  reserved0;												// 37
-	uint8_t  extended_sig;			// 0x28 or 0x29 indicates validity of next 3 fields // 38
-	uint32_t serial_number;											// 39-42
-	char     vol_label[11];											// 43-53
-	char     fstype[8];				// "FAT32" or "FAT16" or "FAT" or zeros
+		struct __attribute__ ((packed))
+		{
+			uint8_t drive_number;
+			uint8_t mount_state;
+		} fat16;
 
-	uint8_t  mbr[448];
-	uint16_t magic;					// always 0xAA55
-} _fat16_volid;
-
-/*
- * FAT32 superblock
- * first sector of filesystem
- */
-typedef struct __attribute__ ((packed))
-{
-	uint8_t  jump[3];
-	uint8_t  oem_id[8];				// eg "MSWIN4.0"
-	uint16_t bytes_per_sector;		// usually 512
-	uint8_t  sectors_per_cluster;	// 1,2,4,8,...,128
-	uint16_t n_reserved_sectors;	// usually 32
-	uint8_t  n_fats;				// always 2
-	uint8_t  irrelevant1[19];
-	uint32_t sectors_per_fat;		// depends on disk size
-	uint8_t  irrelevant2[4];
-	uint32_t root_dir_cluster;		// usually 2
-	uint32_t total_sectors;			// disk size / bytes_per_sector
-	uint8_t  irrelevant3[458];
-	uint16_t magic;
-} _fat32_volid;
+		struct __attribute__ ((packed))
+		{
+			uint32_t sectors_per_fat_32;
+			uint16_t flags;
+			uint8_t  version[2];
+			uint32_t root_dir_cluster;
+			uint16_t fsinfo_sector;
+			uint16_t backup_boot_sector;
+			uint16_t reserved[6];
+			uint8_t  drive_number;
+			uint8_t  mount_state;
+		} fat32;
+	};
+	uint16_t magic;                 // always ntohs(0x55AA)			// 511-512
+} _fat_volid;
 
 /*
  * Directory entries
@@ -125,9 +96,9 @@ typedef struct __attribute__ ((packed))
 		uint8_t flags;
 		struct {
 			uint8_t  sequence    :4;
-			uint8_t  irrelevant0 :1;
+			uint8_t  irrelevant0 :2;
 			uint8_t  final       :1;
-			uint8_t  irrelevant1 :2;
+			uint8_t  irrelevant1 :1;
 		};
 	};
 
@@ -220,11 +191,19 @@ _fat_file_ioresult : _fat_ioresult
 	_fat_traverse_ioresult traverse;
 };
 
+enum _fat_mount_stage_t {
+	FAT_MOUNT_STAGE_SUPERBLOCK,
+	FAT_MOUNT_STAGE_ROOT_DIR
+};
+
 struct __attribute__ ((packed))
 _fat_mount_ioresult : _fat_ioresult
 {
 	char label[12];
+	enum _fat_mount_stage_t stage;
 	uint32_t lba_start;
+	uint32_t root_dir_end;
+
 	_fat_ioreceiver* owner;
 };
 

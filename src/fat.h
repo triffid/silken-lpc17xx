@@ -175,9 +175,9 @@ protected:
 	uint32_t fat_begin_lba;
 	uint32_t cluster_begin_lba;
 	uint32_t sectors_per_cluster;
-	uint32_t root_dir_cluster;
+	uint32_t root_dir_sector;
 
-	uint32_t bytes_per_sector; // I don't feel comfortable assuming that this is always 512
+	uint8_t  fat_type; // 12, 16 or 32
 
 	/*
 	 * conversion between cluster and lba

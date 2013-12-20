@@ -7,6 +7,7 @@ extern "C" {
 
 #include <stdarg.h>
 #include <sys/reent.h>
+#include <cstdio>
 
 // int vfprintf(int fd, const char *format, va_list args);
 // int fprintf(int fd, const char *format, ...) __attribute__ ((__format__ (__printf__, 2, 3)));

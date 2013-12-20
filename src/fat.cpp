@@ -1,6 +1,7 @@
 #include "fat.h"
 
 #include "platform_memory.h"
+#include "platform_utils.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -56,7 +57,8 @@ Fat::Fat()
 	fat_begin_lba       = 0;
 	cluster_begin_lba   = 0;
 	sectors_per_cluster = 0;
-	root_dir_cluster    = 0;
+	root_dir_sector     = 0;
+	fat_type            = 0;
 }
 
 void Fat::f_mount(_fat_mount_ioresult* w, SD* sd)
@@ -85,6 +87,7 @@ void Fat::f_mount(_fat_mount_ioresult* w, SD* sd)
 	w->ready    = 1;
 	w->fini     = 0;
 	w->next     = NULL;
+	w->stage    = FAT_MOUNT_STAGE_SUPERBLOCK;
 
 	if (work_queue)
 	{
@@ -106,7 +109,9 @@ int Fat::f_mounted()
 		return 0;
 	if (sectors_per_cluster == 0)
 		return 0;
-	if (root_dir_cluster == 0)
+	if (root_dir_sector == 0)
+		return 0;
+	if (fat_type == 0)
 		return 0;
 	return 1;
 }
@@ -191,12 +196,12 @@ int  Fat::f_open( _fat_file_ioresult* ior, const char* path)
 		ior->buffer    = dentry_buf;
 		ior->buflen    = 512;
 	}
-	ior->lba       = cluster_to_lba(root_dir_cluster);
+	ior->lba       = root_dir_sector;
 
 	ior->file.root_cluster     = 0;
 	ior->file.direntry_cluster = 0;
 	ior->file.direntry_index   = 0;
-	ior->file.current_cluster  = root_dir_cluster;
+	ior->file.current_cluster  = 0;
 	ior->file.byte_in_cluster  = 0;
 	ior->file.pathname_traversed_bytes = 0;
 
@@ -217,13 +222,13 @@ int  Fat::f_read( _fat_file_ioresult* ior, void* buffer, uint32_t buflen)
 	ior->buffer = (uint8_t*) buffer;
 	ior->buflen = buflen;
 
-	if (ior->file.byte_in_cluster >= bytes_per_sector * sectors_per_cluster)
+	if (ior->file.byte_in_cluster >= 512 * sectors_per_cluster)
 	{
 		if (fat_cache(fat_begin_lba + (ior->file.current_cluster >> 7)))
 		{
 			ior->file.current_cluster = ((uint32_t*) fat_buf)[ior->file.current_cluster & 0x7F];
 			ior->file.cluster_index++;
-			ior->file.byte_in_cluster -= (bytes_per_sector * sectors_per_cluster);
+			ior->file.byte_in_cluster -= (512 * sectors_per_cluster);
 		}
 	}
 
@@ -272,6 +277,11 @@ void Fat::process_buffer(uint8_t* buffer, uint32_t lba)
 {
 	printf("FAT: --PROCBUF-- (%p lba %lu)\n", buffer, lba);
 
+	for (int i = 0; i < 512; i++)
+	{
+		printf("0x%X%c", buffer[i], ((i & 31) == 31)?'\n':' ');
+	}
+
 	if (work_queue == NULL)
 		return;
 
@@ -300,12 +310,58 @@ void Fat::process_buffer(uint8_t* buffer, uint32_t lba)
 
 void Fat::ioaction_mount(_fat_mount_ioresult* w, uint8_t* buffer, uint32_t lba)
 {
-	if (lba == cluster_to_lba(root_dir_cluster))
+	while ((w->stage == FAT_MOUNT_STAGE_ROOT_DIR) && (lba >= root_dir_sector) && (lba <= w->root_dir_end))
 	{
+		printf("FAT: got Root Dir at LBA %lu, searching for Volume Label\n", lba);
 		_fat_direntry* d = (_fat_direntry*) buffer;
-		// TODO: don't assume that volume label is in root cluster
+		// TODO: don't assume that volume label is in first sector of root cluster
 		for (int i = 0; i < 16; i++)
 		{
+			if ((d[i].name[0] == 0) || (w->lba >= w->root_dir_end))
+			{
+				printf("FAT: mount succeeded! End of Root Dir, no label found\n");
+				w->label[0] = 0;
+				w->fini = 1;
+				dequeue(w);
+				return;
+			}
+
+			if (d[i].attr == 0x0F)
+			{
+				char name[14];
+				// LFN entry
+				_fat_lfnentry* lfn = (_fat_lfnentry*) &d[i];
+				for (int j = 0; j < 13; j++)
+				{
+					if ((j >= 0) && (j <= 4))
+						name[j] = lfn->name0[j];
+					if ((j >= 5) && (j <= 10))
+						name[j] = lfn->name1[j - 5];
+					if ((j >= 11) && (j <= 12))
+						name[j] = lfn->name2[j - 11];
+					if ((name[j] > 127) || (name[j] < 32))
+						name[j] = '?';
+				}
+				name[13] = 0;
+				if (d[i].name[0] == 0xE5)
+					printf("\tLFN:     %s [deleted]\n", name);
+				else
+					printf("\tLFN: (%d) %s %s\n", lfn->sequence, name, (lfn->final?"[last]":""));
+			}
+			else
+			{
+				char name[12];
+				// normal entry
+				for (int j = 0; j < 11; j++)
+				{
+					name[j] = d[i].name[j];
+					if ((name[j] > 127) || (name[j] < 32))
+						name[j] = '?';
+				}
+				name[11] = 0;
+				printf("\t%s, attr: 0x%X, cluster: %lu, size: %lub %s\n", name, d[i].attr, (((uint32_t) d[i].ch) << 16) | d[i].cl, d[i].size, (d[i].name[0] == 0xE5)?"[deleted]":"");
+			}
+
 			if (d[i].attr == 0x08)
 			{
 				memcpy(w->label, d[i].name, 11);
@@ -319,6 +375,10 @@ void Fat::ioaction_mount(_fat_mount_ioresult* w, uint8_t* buffer, uint32_t lba)
 				return;
 			}
 		}
+
+		w->lba++;
+
+		if (dentry_cache(w->lba) == 0) return;
 	}
 
 	_fat_bootblock* bootblock = (_fat_bootblock*) buffer;
@@ -362,44 +422,69 @@ void Fat::ioaction_mount(_fat_mount_ioresult* w, uint8_t* buffer, uint32_t lba)
 
 	printf("FAT: didn't look like a partition table, trying FAT superblock\n");
 
-	_fat32_volid*   volid     = (_fat32_volid  *) buffer;
-	printf("FAT: superblock:\n\tid: %c%c%c%c%c%c%c%c\n\tbytes_per_sector: %u\n\tn_fats: %u\n\tsectors_per_cluster: %u\n\tn_reserved_sectors: %u\n\tsectors_per_fat: %lu\n\troot_dir_cluster: %lu\n\ttotal_sectors: %lu (%luMB)\n",
+	_fat_volid*   volid     = (_fat_volid  *) buffer;
+
+	uint32_t nsec   = (volid->total_sectors)?volid->total_sectors:volid->total_sectors_32;
+	uint32_t nclust = nsec / volid->sectors_per_cluster;
+
+	printf("FAT: superblock:\n\tid: %c%c%c%c%c%c%c%c\n\tbytes_per_sector: %u\n\tn_fats: %u\n\tsectors_per_cluster: %u\n\tn_reserved_sectors: %u\n\tsectors_per_fat: %u\n\t\n\thidden_sectors: %lu\n\ttotal_sectors: %lu (%luMB)\n",
 			volid->oem_id[0],volid->oem_id[1],volid->oem_id[2],volid->oem_id[3],volid->oem_id[4],volid->oem_id[5],volid->oem_id[6],volid->oem_id[7],
 		volid->bytes_per_sector,
-		volid->n_fats,
+		volid->num_fats,
 		volid->sectors_per_cluster,
-		volid->n_reserved_sectors,
+		volid->num_boot_sectors,
 		volid->sectors_per_fat,
-		volid->root_dir_cluster,
-		volid->total_sectors,
-		volid->total_sectors / 2048
+		volid->hidden_sectors,
+		nsec,
+		nsec / 2048
 	);
 
 	if (volid->bytes_per_sector == 512 &&
-		volid->n_fats == 2             &&
+		volid->num_fats == 2             &&
 		(	volid->sectors_per_cluster == 1   ||
-		volid->sectors_per_cluster == 2   ||
-		volid->sectors_per_cluster == 4   ||
-		volid->sectors_per_cluster == 8   ||
-		volid->sectors_per_cluster == 16  ||
-		volid->sectors_per_cluster == 32  ||
-		volid->sectors_per_cluster == 64  ||
-		volid->sectors_per_cluster == 128
-		)
+			volid->sectors_per_cluster == 2   ||
+			volid->sectors_per_cluster == 4   ||
+			volid->sectors_per_cluster == 8   ||
+			volid->sectors_per_cluster == 16  ||
+			volid->sectors_per_cluster == 32  ||
+			volid->sectors_per_cluster == 64  ||
+			volid->sectors_per_cluster == 128
+		) &&
+		(nsec <= sd->n_sectors())
 	)
 	{
-		printf("FAT: Found a FAT superblock!\n");
+		fat_type = 12;
+		if (nclust >= 4086U)
+			fat_type = 16;
+		if (nclust >= 65526U)
+			fat_type = 32;
+
+		printf("FAT: Found a FAT%d superblock!\n", fat_type);
 		// looks like a volid
 
-		fat_begin_lba       = lba + volid->n_reserved_sectors;
-		cluster_begin_lba   = lba + volid->n_reserved_sectors + (volid->n_fats * volid->sectors_per_fat);
+		fat_begin_lba       = lba + volid->num_boot_sectors;
 		sectors_per_cluster = volid->sectors_per_cluster;
-		root_dir_cluster    = volid->root_dir_cluster;
-		bytes_per_sector    = volid->bytes_per_sector;
+// 		bytes_per_sector    = volid->bytes_per_sector;
 
-		w->lba = cluster_to_lba(root_dir_cluster);
+		if (fat_type == 32)
+		{
+			uint32_t nsec_per_fat = volid->fat32.sectors_per_fat_32;
+			root_dir_sector       = cluster_to_lba(volid->fat32.root_dir_cluster);
+			cluster_begin_lba     = lba + volid->num_boot_sectors + (volid->num_fats * nsec_per_fat);
+			w->root_dir_end       = cluster_to_lba(volid->fat32.root_dir_cluster + 1) - 1;
+		}
+		else
+		{
+			uint32_t nsec_per_fat = volid->sectors_per_fat;
+			root_dir_sector       = lba + volid->num_boot_sectors + (volid->num_fats * nsec_per_fat);
+			cluster_begin_lba     = root_dir_sector + (volid->num_root_dir_ents / 16);
+			w->root_dir_end       = cluster_begin_lba - 1;
+		}
 
-		if (dentry_cache(cluster_to_lba(root_dir_cluster)) == 0) return;
+		w->stage = FAT_MOUNT_STAGE_ROOT_DIR;
+		w->lba = root_dir_sector;
+
+		if (dentry_cache(w->lba) == 0) return;
 	}
 
 	printf("did not recognise disk image: looks like neither FAT volid or partition table.\n");
@@ -521,13 +606,13 @@ void Fat::ioaction_open(_fat_file_ioresult* w, uint8_t* buffer, uint32_t lba)
 
 void Fat::ioaction_read_one(_fat_file_ioresult* w, uint8_t* buffer, uint32_t lba)
 {
-	if (w->file.byte_in_cluster >= bytes_per_sector * sectors_per_cluster)
+	if (w->file.byte_in_cluster >= 512 * sectors_per_cluster)
 	{
 		if (fat_cache(fat_begin_lba + (w->file.current_cluster >> 7)))
 		{
 			w->file.current_cluster = ((uint32_t*) fat_buf)[w->file.current_cluster & 0x7F];
 			w->file.cluster_index++;
-			w->file.byte_in_cluster -= (bytes_per_sector * sectors_per_cluster);
+			w->file.byte_in_cluster -= (512 * sectors_per_cluster);
 		}
 		else
 			return;
