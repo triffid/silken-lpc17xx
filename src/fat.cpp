@@ -469,9 +469,13 @@ void Fat::ioaction_mount(_fat_mount_ioresult* w, uint8_t* buffer, uint32_t lba)
 		if (fat_type == 32)
 		{
 			uint32_t nsec_per_fat = volid->fat32.sectors_per_fat_32;
-			root_dir_sector       = cluster_to_lba(volid->fat32.root_dir_cluster);
 			cluster_begin_lba     = lba + volid->num_boot_sectors + (volid->num_fats * nsec_per_fat);
+			root_dir_sector       = cluster_to_lba(volid->fat32.root_dir_cluster);
 			w->root_dir_end       = cluster_to_lba(volid->fat32.root_dir_cluster + 1) - 1;
+
+			printf("\tSectors per fat: %lu\n", nsec_per_fat);
+			printf("\tRoot dir cluster: %lu (LBA:%lu)\n", volid->fat32.root_dir_cluster, root_dir_sector);
+			printf("\tCluster begin LBA: %lu\n", lba + volid->num_boot_sectors + (volid->num_fats * nsec_per_fat));
 		}
 		else
 		{
