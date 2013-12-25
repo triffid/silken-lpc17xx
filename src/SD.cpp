@@ -41,6 +41,9 @@ typedef enum {
 
 #include "platform_utils.h"
 
+// #undef printf
+// #define printf(...) do {} while (0)
+
 static uint32_t ext_bits(uint8_t *data, uint32_t msb, uint32_t lsb) {
 	uint32_t bits = 0;
 	uint32_t size = 1 + msb - lsb;
@@ -77,14 +80,14 @@ static int sd_cmdx(SPI* spi, int cmd, uint32_t arg)
 	else
 		spi_cmd.checksum = 0x95;
 
-	printf("spi_cmdx Send: ");
-	for (uint32_t q = 0; q < sizeof(spi_cmd); q++)
-		printf("0x%X ", spi_cmd.packet[q]);
-	printf("\n");
+// 	printf("spi_cmdx Send: ");
+// 	for (uint32_t q = 0; q < sizeof(spi_cmd); q++)
+// 		printf("0x%X ", spi_cmd.packet[q]);
+// 	printf("\n");
 	
 	spi->send_block(spi_cmd.packet, sizeof(spi_cmd));
 
-	printf("         Recv: ");
+// 	printf("         Recv: ");
 	
 	int i;
 	uint8_t r;
@@ -92,9 +95,9 @@ static int sd_cmdx(SPI* spi, int cmd, uint32_t arg)
 	{
 		if (((r = spi->transfer(0xFF)) & 0x80) == 0)
 			break;
-		printf("0x%X ", r);
+// 		printf("0x%X ", r);
 	}
-	printf("0x%X\n", r);
+// 	printf("0x%X\n", r);
 
 	if (i >= CMD_TIMEOUT)
 		// error: cmd failed
@@ -529,20 +532,21 @@ void SD::work_stack_work(void)
 					}
 
 					w->status = SD_READ_STATUS_WAIT_TRAN;
-					printf("WAIT TRAN: ");
+// 					printf("WAIT TRAN: ");
 					// deliberate fall-through
 				}
 				case SD_READ_STATUS_WAIT_TRAN:
 				{
 					uint8_t r;
 					r = spi->transfer(0xFF);
-					printf("0x%X ", r);
+
+// 					printf("0x%X", r);
+//                     printf(" ");
+
 					if (r != 0xFE)
 					{
 						if (r == 0xFF)
 						{
-							// TODO: schedule work_queue_work maybe 25uS in the future
-// 							request_work(25);
 							work_flags |= SD_FLAG_REQ_WORK;
 						}
 						else
@@ -617,6 +621,7 @@ void SD::clean_buffer(void* buf)
                 work_stack->status = SD_READ_STATUS_WAIT_TRAN;
                 work_stack->buf = buf;
                 work_stack->sector++;
+//                 printf("WAIT TRAN: ");
                 work_stack_work();
             }
             break;

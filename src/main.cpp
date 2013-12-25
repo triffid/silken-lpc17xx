@@ -411,27 +411,37 @@ extern "C" {
 //*/
 class sar : public SD_async_receiver
 {
+public:
+    sar()
+    {
+        last_sector = 0;
+    }
 	void sd_read_complete(SD* sd, uint32_t sector, void* buf, int err)
 	{
-		uint8_t* b = (uint8_t*) buf;
+// 		uint8_t* b = (uint8_t*) buf;
 		printf("read complete! sector %lu, buf %p, err: %d\n", sector, buf, err);
 		if (err == 0)
 		{
-			for (int i = 0; i < 512; i++)
-				printf("0x%X%c", b[i], ((i & 31) == 31)?'\n':' ');
-		}
+// 			for (int i = 0; i < 512; i++)
+// 				printf("0x%X%c", b[i], ((i & 31) == 31)?'\n':' ');
+            sd->clean_buffer(buf);
+            last_sector = sector;
+        }
 
 // 		if (sector == 0)
 // 			sd->begin_read(133, buf, this);
 // 		else if (sector >= 133 && sector <= 150)
 // 			sd->begin_read(sector + 1, buf, this);
-        sd->clean_buffer(buf);
 	};
 
 	void sd_write_complete(SD* sd, uint32_t sector, void* buf, int err)
 	{
 	};
+
+    uint32_t last_sector;
 } sar_dumper;
+
+GPIO* isp_btn;
 
 int main()
 {
@@ -456,6 +466,8 @@ int main()
 		GPIO(LED4),
 		GPIO(LED5)
 	};
+
+    isp_btn = new GPIO(P2_10);
 	
 	for (i = 0; i < N_LEDS; i++)
 	{
@@ -522,14 +534,22 @@ int main()
 
     uint8_t* buf = (uint8_t*) AHB0.alloc(512);
 
-	for (;;)
+    printf("Begin read Sectors 0-255\n");
+    sd->begin_read(0, 256, buf, &sar_dumper);
+
+    for (;;)
     {
+        if (isp_btn->get() == 0)
+            __debugbreak();
 		sd->on_idle();
         if (clock.flag_1s_test(clockflag))
         {
-            printf("Time is %llu\n", clock.time_s());
-            printf("Begin read Sector 0\n");
-            sd->begin_read(0, 16, buf, &sar_dumper);
+            if (sar_dumper.last_sector >= 255)
+            {
+                printf("Time is %llu\n", clock.time_s());
+                printf("Begin read Sectors 0-255\n");
+                sd->begin_read(0, 256, buf, &sar_dumper);
+            }
         }
     }
 

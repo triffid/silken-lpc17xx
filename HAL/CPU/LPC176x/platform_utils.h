@@ -1,6 +1,8 @@
 #ifndef _PLATFORM_UTILS_H
 #define _PLATFORM_UTILS_H
 
+#include <mri.h>
+
 #include "LPC17xx.h"
 
 #define htonl(l) __REV(l)
