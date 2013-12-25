@@ -141,8 +141,8 @@ public:
 	void f_mount(_fat_mount_ioresult*, SD*);
 	int  f_open( _fat_file_ioresult*, const char*);
 	int  f_seek( _fat_file_ioresult*, uint32_t);
-	int  f_read( _fat_file_ioresult*, void*, uint32_t);
-	int  f_write(_fat_file_ioresult*, void*, uint32_t);
+	int  f_read_block( _fat_file_ioresult*, void*, uint32_t);
+	int  f_write_block(_fat_file_ioresult*, void*, uint32_t);
 	int  f_close(_fat_file_ioresult*);
 
 	int  f_mounted(void);

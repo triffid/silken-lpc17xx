@@ -98,7 +98,7 @@ void Fat::f_mount(_fat_mount_ioresult* w, SD* sd)
 
 	work_queue = w;
 
-	this->sd->begin_read(w->lba, w->buffer, this);
+	this->sd->begin_read(w->lba, 1, w->buffer, this);
 }
 
 int Fat::f_mounted()
@@ -155,7 +155,7 @@ void Fat::enqueue(_fat_ioresult* ior)
 		else if ((w->lba == fat_lba) && (w->buffer == fat_buf))
 			process_buffer(w->buffer, w->lba);
 		else
-			sd->begin_read(w->lba, w->buffer, this);
+			sd->begin_read(w->lba, 1, w->buffer, this);
 
 		// else do nothing
 	}
@@ -213,7 +213,7 @@ int  Fat::f_open( _fat_file_ioresult* ior, const char* path)
 	return 0;
 }
 
-int  Fat::f_read( _fat_file_ioresult* ior, void* buffer, uint32_t buflen)
+int  Fat::f_read_block( _fat_file_ioresult* ior, void* buffer, uint32_t buflen)
 {
 	printf("FAT: READ %s (%p)!\n", ior->file.path, ior);
 
@@ -241,7 +241,7 @@ int  Fat::f_read( _fat_file_ioresult* ior, void* buffer, uint32_t buflen)
 	return 0;
 }
 
-int  Fat::f_write(_fat_file_ioresult* ior, void* buffer, uint32_t buflen)
+int  Fat::f_write_block(_fat_file_ioresult* ior, void* buffer, uint32_t buflen)
 {
 	printf("f_write: unimplementeed\n");
 	return 0;
@@ -654,7 +654,7 @@ int Fat::fat_cache(uint32_t lba)
 	if (fat_lba == lba)
 		return 1;
 
-	sd->begin_read(lba, fat_buf, this);
+	sd->begin_read(lba, 0, fat_buf, this);
 
 	return 0;
 }
@@ -666,7 +666,7 @@ int Fat::dentry_cache(uint32_t lba)
 	if (dentry_lba == lba)
 		return 1;
 
-	sd->begin_read(lba, dentry_buf, this);
+	sd->begin_read(lba, 1, dentry_buf, this);
 
 	return 0;
 }

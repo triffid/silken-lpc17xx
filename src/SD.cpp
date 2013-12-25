@@ -7,7 +7,6 @@
 #include "platform_utils.h"
 
 #include "mri.h"
-#include "min-printf.h"
 
 #define CMD_TIMEOUT 32
 #define READ_TIMEOUT 512
@@ -15,17 +14,19 @@
 
 enum {
 	SD_READ_STATUS_START,
-	SD_READ_WAIT_CMD_RESPONSE,
+	SD_READ_STATUS_WAIT_CMD_RESPONSE,
 	SD_READ_STATUS_WAIT_TRAN,
 	SD_READ_STATUS_DMA,
-	SD_READ_STATUS_CHECKSUM
+	SD_READ_STATUS_CHECKSUM,
+    SD_READ_STATUS_BUFFER_DIRTY
 } SD_READ_STATUS;
 
 enum {
 	SD_WRITE_STATUS_START,
-	SD_WRITE_WAIT_CMD_RESPONSE,
+	SD_WRITE_STATUS_WAIT_CMD_RESPONSE,
 	SD_WRITE_STATUS_DMA,
-	SD_WRITE_STATUS_WAIT_BSY
+	SD_WRITE_STATUS_WAIT_BSY,
+    SD_WRITE_STATUS_BUFFER_DIRTY
 } SD_WRITE_STATUS;
 
 typedef enum {
@@ -76,14 +77,14 @@ static int sd_cmdx(SPI* spi, int cmd, uint32_t arg)
 	else
 		spi_cmd.checksum = 0x95;
 
-// 	printf("spi_cmdx Send: ");
-// 	for (uint32_t q = 0; q < sizeof(spi_cmd); q++)
-// 		printf("0x%X ", spi_cmd.packet[q]);
-// 	printf("\n");
+	printf("spi_cmdx Send: ");
+	for (uint32_t q = 0; q < sizeof(spi_cmd); q++)
+		printf("0x%X ", spi_cmd.packet[q]);
+	printf("\n");
 	
 	spi->send_block(spi_cmd.packet, sizeof(spi_cmd));
 
-// 	printf("         Recv: ");
+	printf("         Recv: ");
 	
 	int i;
 	uint8_t r;
@@ -91,9 +92,9 @@ static int sd_cmdx(SPI* spi, int cmd, uint32_t arg)
 	{
 		if (((r = spi->transfer(0xFF)) & 0x80) == 0)
 			break;
-// 		printf("0x%X ", r);
+		printf("0x%X ", r);
 	}
-// 	printf("0x%X\n", r);
+	printf("0x%X\n", r);
 
 	if (i >= CMD_TIMEOUT)
 		// error: cmd failed
@@ -445,7 +446,7 @@ uint32_t SD::n_sectors()
 	return sector_count;
 }
 
-int SD::begin_read(uint32_t sector, void* buf, SD_async_receiver* receiver)
+int SD::begin_read(uint32_t sector, uint32_t n_sectors, void* buf, SD_async_receiver* receiver)
 {
 	sd_work_stack_t* w;
 	if (gc_stack)
@@ -457,18 +458,24 @@ int SD::begin_read(uint32_t sector, void* buf, SD_async_receiver* receiver)
 	else
 		w = (sd_work_stack_t*) malloc(sizeof(sd_work_stack_t));
 
-	w->action   = SD_WORK_ACTION_READ;
-	w->buf      = buf;
-	w->sector   = sector;
-	w->receiver = receiver;
-	w->status   = SD_READ_STATUS_START;
-	w->next     = NULL;
+	w->action     = SD_WORK_ACTION_READ;
+	w->buf        = buf;
+	w->sector     = sector;
+    if (n_sectors > 1)
+        w->end_sector = sector + n_sectors - 1;
+    else
+        w->end_sector = 0;
+	w->receiver   = receiver;
+	w->status     = SD_READ_STATUS_START;
+	w->next       = NULL;
 
-	sd_work_stack_t* x = work_stack;
-	__disable_irq();
-	if (x)
+    __disable_irq();
+
+	if (work_stack)
 	{
-		while (x->next)
+        sd_work_stack_t* x = work_stack;
+
+        while (x->next)
 			x = x->next;
 		x->next = w;
 		__enable_irq();
@@ -479,8 +486,6 @@ int SD::begin_read(uint32_t sector, void* buf, SD_async_receiver* receiver)
 		__enable_irq();
 		work_stack_work();
 	}
-
-// 	work_stack_debug();
 
 	return 0;
 }
@@ -513,7 +518,7 @@ void SD::work_stack_work(void)
 						return;
 					}
 
-					int r = sd_cmdx(spi, 17, addr);
+					int r = sd_cmdx(spi, w->end_sector?18:17, addr);
 					if (r & 0x7E)
 					{
 						work_flags |= SD_FLAG_ERROR;
@@ -581,7 +586,14 @@ void SD::work_stack_work(void)
 
 					// we must pop first, in case the read_complete event requests another read.
 					// in that case, it's advantageous to have the work item in the GC queue already so it can be reused
-					work_stack_pop();
+                    if (w->sector >= w->end_sector)
+                    {
+                        work_stack_pop();
+                        if (w->end_sector)
+                            sd_cmd(spi, 12, 0);
+                    }
+                    else
+                        w->status = SD_READ_STATUS_BUFFER_DIRTY;
 
 					if (w->receiver)
 						w->receiver->sd_read_complete(this, w->sector, w->buf, 0);
@@ -593,6 +605,24 @@ void SD::work_stack_work(void)
 		default:
 			break;
 	}
+}
+
+void SD::clean_buffer(void* buf)
+{
+    switch(work_stack->action)
+    {
+        case SD_WORK_ACTION_READ:
+            if (work_stack->status == SD_READ_STATUS_BUFFER_DIRTY)
+            {
+                work_stack->status = SD_READ_STATUS_WAIT_TRAN;
+                work_stack->buf = buf;
+                work_stack->sector++;
+                work_stack_work();
+            }
+            break;
+        default:
+            break;
+    }
 }
 
 void SD::work_stack_pop()

@@ -34,6 +34,7 @@ struct _sd_work_stack {
 	SD_WORK_ACTION action;
 
 	uint32_t sector;
+    uint32_t end_sector;
 	void*    buf;
 	uint8_t  status;
 
@@ -60,8 +61,10 @@ public:
 // 	int write_multi(uint32_t sector, void* buf, int sectors);
 // 	int pre_erase(uint32_t sector, uint32_t n_sectors);
 	
-	int begin_read(uint32_t sector, void* buf, SD_async_receiver*);
-	int begin_write(uint32_t sector, void* buf, SD_async_receiver*);
+	int begin_read(uint32_t sector, uint32_t n_sectors, void* buf, SD_async_receiver*);
+	int begin_write(uint32_t sector, uint32_t n_sectors, void* buf, SD_async_receiver*);
+
+    void clean_buffer(void* buf);
 
 	SD_CARD_TYPE get_type(void);
 

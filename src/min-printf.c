@@ -53,7 +53,7 @@ int puts(const char *str)
 }
 
 int bufp;
-char printf_buf[12];
+char printf_buf[20];
 
 int _uint_write(uint32_t i)
 {
@@ -78,6 +78,28 @@ int _uint_write(uint32_t i)
 	return length;
 }
 
+int _uint64_write(uint64_t i)
+{
+    uint64_t j;
+    uint64_t k;
+    int length;
+    for(
+        length = 0, k = 10000000000000000000ULL;
+    k;
+    k /= 10
+    )
+    {
+        if ((i >= k) || (k == 1) || length)
+        {
+            j = i / k;
+            printf_buf[bufp++] = j + '0';
+            i -= j * k;
+            length++;
+        }
+    }
+    printf_buf[bufp] = 0;
+    return length;
+}
 int _int_write(int32_t i)
 {
 	int length = 0;
@@ -157,7 +179,9 @@ int vfprintf(int fd, const char *format, va_list args)
 						j = 4;
 					break;
 				case 'u':
-					if (j <= 4)
+                    if (j == 8)
+                        _uint64_write(va_arg(args, uint64_t));
+					else if (j <= 4)
 						_uint_write(va_arg(args, uint32_t));
 					j = 0;
 					break;

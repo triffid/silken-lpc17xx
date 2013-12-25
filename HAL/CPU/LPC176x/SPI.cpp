@@ -1,6 +1,7 @@
 #include "SPI.h"
 
 #include <cstdlib>
+#include <cstdio>
 
 #include "lpc17xx_ssp.h"
 #include "lpc17xx_pinsel.h"
@@ -8,8 +9,6 @@
 
 #include "gpio.h"
 #include "pins_platform.h"
-
-#include "min-printf.h"
 
 #include "mri.h"
 

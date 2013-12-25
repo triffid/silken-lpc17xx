@@ -1,12 +1,12 @@
 #include "DMA.h"
 
 #include <cstdlib>
+#include <cstdio>
 
 #include "LPC17xx.h"
 #include "lpc17xx_clkpwr.h"
 #include "lpc17xx_gpdma.h"
 
-#include "min-printf.h"
 #include "mri.h"
 
 // from lpc17xx_gpdma.c

@@ -1,9 +1,9 @@
 #ifndef _MEMORYPOOL_H
 #define _MEMORYPOOL_H
 
-#include <stdint.h>
-#include <min-printf.h>
-#include <stdlib.h>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 
 #ifdef MEMDEBUG
     #define MDEBUG(...) printf(__VA_ARGS__)
@@ -40,7 +40,7 @@ private:
     void* base;
     uint16_t size;
 
-    uint16_t sbrk;
+//     uint16_t sbrk;
 };
 
 // this overloads "placement new"
