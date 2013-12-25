@@ -24,7 +24,7 @@
  *                                                                            *
  *****************************************************************************/
 
-#include "pins_platform.h"
+#include "platform_pins.h"
 #include "pindef.h"
 
 #include "debug.h"
