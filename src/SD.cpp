@@ -540,8 +540,7 @@ void SD::work_stack_work(void)
 					uint8_t r;
 					r = spi->transfer(0xFF);
 
-// 					printf("0x%X", r);
-//                     printf(" ");
+					printf("0x%X", r);
 
 					if (r != 0xFE)
 					{
