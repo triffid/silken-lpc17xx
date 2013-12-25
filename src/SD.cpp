@@ -12,6 +12,25 @@
 #define READ_TIMEOUT 512
 #define WRITE_TIMEOUT 512
 
+typedef enum {
+    SD_CMD_GO_IDLE_STATE =  0,
+    SD_CMD_SEND_IF_COND  =  8,
+    SD_CMD_SEND_CSD      =  9,
+    SD_CMD_SEND_CID      = 10,
+    SD_CMD_STOP_TRAN     = 12,
+    SD_CMD_READ_BLOCK    = 17,
+    SD_CMD_READ_BLOCKS   = 18,
+    SD_CMD_WRITE_BLOCK   = 24,
+    SD_CMD_WRITE_BLOCKS  = 25,
+    SD_CMD_APP_CMD       = 55,
+    SD_CMD_READ_OCR      = 58
+} SD_CMD_NUM;
+
+typedef enum {
+    SD_ACMD_SET_WR_ERASE_BLOCKS = 23,
+    SD_ACMD_SEND_OP_COND        = 41
+} SD_ACMD_NUM;
+
 enum {
 	SD_READ_STATUS_START,
 	SD_READ_STATUS_WAIT_CMD_RESPONSE,
@@ -166,12 +185,12 @@ static int sd_cmd(SPI* spi, int cmd, uint32_t arg)
 	return r;
 }
 
-static int cmd0(SPI* spi)
+static inline int sd_cmd_go_idle_state(SPI* spi)
 {
-	return sd_cmd(spi, 0, 0);
+	return sd_cmd(spi, SD_CMD_GO_IDLE_STATE, 0);
 }
 
-static int cmd8(SPI* spi)
+static inline int sd_cmd_send_if_cond(SPI* spi)
 {
 	union {
 		uint8_t b[4];
@@ -182,7 +201,7 @@ static int cmd8(SPI* spi)
 	
 	int r;
 	
-	if ((r = sd_cmdx(spi, 8, 0x1AA)) & 0x7A)
+	if ((r = sd_cmdx(spi, SD_CMD_SEND_IF_COND, 0x1AA)) & 0x7A)
 	{
 		// comms error
 		spi->end_transaction();
@@ -209,7 +228,7 @@ static int cmd8(SPI* spi)
 	return r;
 }
 
-static int cmd58(SPI* spi, uint32_t* ocr)
+static inline int sd_cmd_read_ocr(SPI* spi, uint32_t* ocr)
 {
 	union {
 		uint8_t b[4];
@@ -218,7 +237,7 @@ static int cmd58(SPI* spi, uint32_t* ocr)
 	
 	int r;
 	
-	if ((r = sd_cmdx(spi, 58, 0)) & 0x7E)
+	if ((r = sd_cmdx(spi, SD_CMD_READ_OCR, 0)) & 0x7E)
 		return -1;
 	
 	if (sd_response(spi, buf.b, 4) < 0)
@@ -231,7 +250,7 @@ static int cmd58(SPI* spi, uint32_t* ocr)
 	return r;
 }
 
-static int acmd41(SPI* spi)
+static inline int sd_acmd_send_op_cond(SPI* spi)
 {
 	int r;
 	
@@ -239,10 +258,10 @@ static int acmd41(SPI* spi)
 	
 	do
 	{
-		if ((r = sd_cmd(spi, 55, 0)) & 0x7E)
+		if ((r = sd_cmd(spi, SD_CMD_APP_CMD, 0)) & 0x7E)
 			return -1;
 		
-		if ((r = sd_cmd(spi, 41, SD_HIGH_CAPACITY)) & 0x7E)
+		if ((r = sd_cmd(spi, SD_ACMD_SEND_OP_COND, SD_HIGH_CAPACITY)) & 0x7E)
 			return -1;
 		
 		if (--i <= 0)
@@ -253,11 +272,24 @@ static int acmd41(SPI* spi)
 	return r;
 }
 
-static int cmd9(SPI* spi, void* CSD)
+static inline int sd_acmd_set_wr_erase_blocks(SPI* spi, uint32_t n_blocks)
+{
+    int r;
+
+    if ((r = sd_cmd(spi, SD_CMD_APP_CMD, 0)) & 0x7E)
+        return -1;
+
+    if ((r = sd_cmd(spi, SD_ACMD_SET_WR_ERASE_BLOCKS, n_blocks)) & 0x7E)
+        return -1;
+
+    return r;
+}
+
+static int sd_cmd_send_csd(SPI* spi, void* CSD)
 {
 	int r;
 
-	r = sd_cmdx(spi, 9, 0);
+	r = sd_cmdx(spi, SD_CMD_SEND_CSD, 0);
 	if (r & 0x7E)
 	{
 		spi->end_transaction();
@@ -275,11 +307,11 @@ static int cmd9(SPI* spi, void* CSD)
 	return r;
 }
 
-static int cmd10(SPI* spi, void* CID)
+static int sd_cmd_send_cid(SPI* spi, void* CID)
 {
 	int r;
 
-	r = sd_cmdx(spi, 10, 0);
+	r = sd_cmdx(spi, SD_CMD_SEND_CID, 0);
 	if (r & 0x7E)
 	{
 		spi->end_transaction();
@@ -328,12 +360,9 @@ int SD::init()
 	
 	spi->set_frequency(25000);
 	
-	/*
-	 * CMD0
-	 */
 	for (i = 0; i < CMD_TIMEOUT; i++)
 	{
-		r = cmd0(spi);
+		r = sd_cmd_go_idle_state(spi);
 		if (r == 1)
 			break;
 	}
@@ -341,10 +370,7 @@ int SD::init()
 	if (i >= CMD_TIMEOUT)
 		return -1;
 	
-	/*
-	 * CMD8
-	 */
-	r = cmd8(spi);
+	r = sd_cmd_send_if_cond(spi);
 	
 	if (r & 4)
 		card_type = SD_TYPE_MMC;
@@ -353,22 +379,15 @@ int SD::init()
 	if (r != 1)
 		return -2;
 	
-	/* 
-	 * acmd41
-	 */
-	r = acmd41(spi);
+	r = sd_acmd_send_op_cond(spi);
 	if (r != 0)
 		return -3;
 	
-	/*
-	 * CMD58
-	 */
 	uint32_t ocr;
 	
-// 	__debugbreak();
 	do
 	{
-		r = cmd58(spi, &ocr);
+		r = sd_cmd_read_ocr(spi, &ocr);
 
 		if (r & 0x7E)
 			return -4;
@@ -389,7 +408,7 @@ int SD::init()
 
 	uint8_t csd[16];
 	
-	r = cmd9(spi, csd);
+	r = sd_cmd_send_csd(spi, csd);
 	if (r & 0x7E)
 		return -6;
 
@@ -411,7 +430,7 @@ int SD::init()
 
 	uint8_t cid[16];
 
-	r = cmd10(spi, cid);
+	r = sd_cmd_send_cid(spi, cid);
 	if (r & 0x7E)
 		return -8;
 
