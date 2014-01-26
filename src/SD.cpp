@@ -33,18 +33,18 @@ typedef enum {
 
 enum {
 	SD_READ_STATUS_START,
-	SD_READ_STATUS_WAIT_CMD_RESPONSE,
 	SD_READ_STATUS_WAIT_TRAN,
-	SD_READ_STATUS_DMA,
+    SD_READ_STATUS_CONTINUE_MULTI,
+    SD_READ_STATUS_DMA,
 	SD_READ_STATUS_CHECKSUM,
     SD_READ_STATUS_BUFFER_DIRTY
 } SD_READ_STATUS;
 
 enum {
 	SD_WRITE_STATUS_START,
-	SD_WRITE_STATUS_WAIT_CMD_RESPONSE,
-	SD_WRITE_STATUS_DMA,
-	SD_WRITE_STATUS_WAIT_BSY,
+    SD_WRITE_STATUS_WAIT_BSY,
+    SD_WRITE_STATUS_DMA,
+    SD_WRITE_STATUS_CHECKSUM,
     SD_WRITE_STATUS_BUFFER_DIRTY
 } SD_WRITE_STATUS;
 
@@ -514,119 +514,245 @@ int SD::begin_read(uint32_t sector, uint32_t n_sectors, void* buf, SD_async_rece
 
 void SD::work_stack_work(void)
 {
-	sd_work_stack_t* w = work_stack;
-
-	switch(w->action)
+	switch(work_stack->action)
 	{
 		case SD_WORK_ACTION_READ:
-		{
-			switch(w->status)
-			{
-				case SD_READ_STATUS_START:
-				{
-					work_flags |= SD_FLAG_RUNNING;
-
-					uint32_t addr;
-					if (card_type == SD_TYPE_SDHC)
-						addr = w->sector;
-					else if (card_type == SD_TYPE_SD)
-						addr = w->sector << 9;
-					else
-					{
-						work_flags |= SD_FLAG_ERROR;
-						if (w->receiver)
-							w->receiver->sd_read_complete(this, w->sector, w->buf, w->status + 1);
-						// TODO: support MMC
-						return;
-					}
-
-					int r = sd_cmdx(spi, w->end_sector?18:17, addr);
-					if (r & 0x7E)
-					{
-						work_flags |= SD_FLAG_ERROR;
-						if (w->receiver)
-							w->receiver->sd_read_complete(this, w->sector, w->buf, w->status + 1);
-						// TODO: handle error
-						return;
-					}
-
-					w->status = SD_READ_STATUS_WAIT_TRAN;
-// 					printf("WAIT TRAN: ");
-					// deliberate fall-through
-				}
-				case SD_READ_STATUS_WAIT_TRAN:
-				{
-					uint8_t r;
-					r = spi->transfer(0xFF);
-
-					printf("0x%X", r);
-
-					if (r != 0xFE)
-					{
-						if (r == 0xFF)
-						{
-							work_flags |= SD_FLAG_REQ_WORK;
-						}
-						else
-						{
-							work_flags &= ~SD_FLAG_REQ_WORK;
-							work_flags |= SD_FLAG_ERROR;
-							// error!
-							if (w->receiver)
-								w->receiver->sd_read_complete(this, w->sector, w->buf, w->status + 1);
-						}
-						return;
-					}
-					work_flags &= ~SD_FLAG_REQ_WORK;
-					w->status = SD_READ_STATUS_DMA;
-					// deliberate fall-through
-				}
-				case SD_READ_STATUS_DMA:
-				{
-					work_flags |= SD_FLAG_RUNNING;
-
-					dma_txmem.setup(&txm, 4);
-					dma_txmem.auto_increment = DMA_NO_INCREMENT;
-
-					dma_rxmem.setup(w->buf, 512);
-
-					dma_tx.setup(512);
-					dma_rx.setup(512);
-
-					dma_rx.begin();
-					dma_tx.begin();
-
-					w->status = SD_READ_STATUS_CHECKSUM;
-
-					break;
-				}
-				case SD_READ_STATUS_CHECKSUM:
-					spi->transfer(0xFF);
-					spi->transfer(0xFF);
-
-					sd_work_stack_t* w = work_stack;
-
-					// we must pop first, in case the read_complete event requests another read.
-					// in that case, it's advantageous to have the work item in the GC queue already so it can be reused
-                    if (w->sector >= w->end_sector)
-                    {
-                        work_stack_pop();
-                        if (w->end_sector)
-                            sd_cmd(spi, 12, 0);
-                    }
-                    else
-                        w->status = SD_READ_STATUS_BUFFER_DIRTY;
-
-					if (w->receiver)
-						w->receiver->sd_read_complete(this, w->sector, w->buf, 0);
-
-					break;
-			}
-		};
-		break;
+            work_stack_read();
+            break;
+        case SD_WORK_ACTION_WRITE:
+            work_stack_write();
+            break;
 		default:
 			break;
 	}
+}
+
+void SD::work_stack_read()
+{
+    sd_work_stack_t* w = work_stack;
+
+    switch(w->status)
+    {
+        case SD_READ_STATUS_START:
+        {
+            work_flags |= SD_FLAG_RUNNING;
+
+            uint32_t addr;
+            if (card_type == SD_TYPE_SDHC)
+                addr = w->sector;
+            else if (card_type == SD_TYPE_SD)
+                addr = w->sector << 9;
+            else
+            {
+                work_flags |= SD_FLAG_ERROR;
+                if (w->receiver)
+                    w->receiver->sd_read_complete(this, w->sector, w->buf, w->status + 1);
+                // TODO: support MMC
+                return;
+            }
+
+            int r = sd_cmdx(spi, w->end_sector?SD_CMD_READ_BLOCKS:SD_CMD_READ_BLOCK, addr);
+            if (r & 0x7E)
+            {
+                work_flags |= SD_FLAG_ERROR;
+                if (w->receiver)
+                    w->receiver->sd_read_complete(this, w->sector, w->buf, w->status + 1);
+                // TODO: handle error
+                return;
+            }
+
+            w->status = SD_READ_STATUS_WAIT_TRAN;
+            //                  printf("WAIT TRAN: ");
+            // deliberate fall-through
+        }
+        case SD_READ_STATUS_WAIT_TRAN:
+        case SD_READ_STATUS_CONTINUE_MULTI:
+        {
+            uint8_t r;
+            r = spi->transfer(0xFF);
+
+            printf("0x%X", r);
+
+            if (r != 0xFE)
+            {
+                if (r == 0xFF)
+                {
+                    work_flags |= SD_FLAG_REQ_WORK;
+                }
+                else
+                {
+                    work_flags &= ~SD_FLAG_REQ_WORK;
+                    work_flags |= SD_FLAG_ERROR;
+                    // error!
+                    if (w->receiver)
+                        w->receiver->sd_read_complete(this, w->sector, w->buf, w->status + 1);
+                }
+                return;
+            }
+            work_flags &= ~SD_FLAG_REQ_WORK;
+            w->status = SD_READ_STATUS_DMA;
+            // deliberate fall-through
+        }
+        case SD_READ_STATUS_DMA:
+        {
+            work_flags |= SD_FLAG_RUNNING;
+
+            dma_txmem.setup(&txm, 4);
+            dma_txmem.auto_increment = DMA_NO_INCREMENT;
+
+            dma_rxmem.setup(w->buf, 512);
+
+            dma_tx.setup(512);
+            dma_rx.setup(512);
+
+            dma_rx.begin();
+            dma_tx.begin();
+
+            w->status = SD_READ_STATUS_CHECKSUM;
+
+            break;
+        }
+        case SD_READ_STATUS_CHECKSUM:
+            spi->transfer(0xFF);
+            spi->transfer(0xFF);
+
+            sd_work_stack_t* w = work_stack;
+
+            // we must pop first, in case the read_complete event requests another read.
+            // in that case, it's advantageous to have the work item in the GC queue already so it can be reused
+            if (w->sector >= w->end_sector)
+            {
+                work_stack_pop();
+                if (w->end_sector)
+                    sd_cmd(spi, 12, 0);
+            }
+            else
+                w->status = SD_READ_STATUS_BUFFER_DIRTY;
+
+            if (w->receiver)
+                w->receiver->sd_read_complete(this, w->sector, w->buf, 0);
+
+            break;
+    }
+}
+
+void SD::work_stack_write()
+{
+    sd_work_stack_t* w = work_stack;
+
+    switch(w->status)
+    {
+        // TODO
+        case SD_WRITE_STATUS_START:
+            if (w->end_sector)
+            {
+                sd_cmd(spi, SD_CMD_APP_CMD, 0);
+                sd_cmd(spi, SD_ACMD_SET_WR_ERASE_BLOCKS, w->end_sector - w->sector + 1);
+
+                uint32_t addr;
+
+                if (card_type == SD_TYPE_SDHC)
+                    addr = w->sector;
+                else if (card_type == SD_TYPE_SD)
+                    addr = w->sector << 9;
+                else
+                {
+                    work_flags |= SD_FLAG_ERROR;
+                    if (w->receiver)
+                        w->receiver->sd_write_complete(this, w->sector, w->buf, w->status + 1);
+                    // TODO: support MMC
+                    return;
+                }
+
+                int r = sd_cmd(spi, w->end_sector?SD_CMD_WRITE_BLOCKS:SD_CMD_WRITE_BLOCK, addr);
+                if (r & 0x7E)
+                {
+                    work_flags |= SD_FLAG_ERROR;
+                    if (w->receiver)
+                        w->receiver->sd_write_complete(this, w->sector, w->buf, w->status + 1);
+                    return
+                }
+
+                w->status = SD_WRITE_STATUS_DMA;
+                // deliberate fall-through
+            }
+        case SD_WRITE_STATUS_DMA:
+        {
+            work_flags |= SD_FLAG_RUNNING;
+
+            dma_txmem.setup(w->buf, 512);
+            dma_txmem.auto_increment = DMA_AUTO_INCREMENT;
+
+            dma_rxmem.setup(&txm, 4);
+            dma_rxmem.auto_increment = DMA_NO_INCREMENT;
+
+            dma_tx.setup(512);
+            dma_rx.setup(512);
+
+            dma_rx.begin();
+            dma_tx.begin();
+
+            w->status = SD_WRITE_STATUS_CHECKSUM;
+
+            break;
+        };
+            break;
+        case SD_WRITE_STATUS_CHECKSUM:
+            spi->transfer(0xFF);
+            spi->transfer(0xFF);
+
+            w->status = SD_WRITE_STATUS_WAIT_RESPONSE;
+
+            // deliberate fall-through
+        case SD_WRITE_STATUS_WAIT_RESPONSE:
+        {
+            uint8_t r = spi->transfer(0xFF);
+            if (r != 0xFF)
+            {
+                work_flags &= ~SD_FLAG_REQ_WORK;
+
+                if ((r & 31) == 0x5)
+                {
+                    // data accepted
+                    w->status = SD_WRITE_STATUS_BUFFER_DIRTY;
+
+                    if (w->receiver)
+                        w->receiver->sd_write_complete(this, w->sector, w->buf, 0);
+
+                    if (w->status != SD_WRITE_STATUS_WAIT_BSY)
+                        break;
+                }
+                else
+                {
+                    sd_cmd(spi, SD_CMD_STOP_TRAN, 0);
+                    if (w->receiver)
+                        w->receiver->sd_write_complete(this, w->sector, w->buf, r);
+                }
+            }
+            else
+            {
+                work_flags |= SD_FLAG_REQ_WORK;
+                break;
+            }
+        };
+
+            // deliberate fall-through
+
+        case SD_WRITE_STATUS_WAIT_BSY:
+        {
+            uint8_t r = spi->transfer(0xFF);
+            if (r != 0x00)
+            {
+
+            }
+            else
+                work_flags |= SD_FLAG_REQ_WORK;
+        };
+        case SD_WRITE_STATUS_BUFFER_DIRTY:
+            break;
+        default:
+            break;
+    }
 }
 
 void SD::clean_buffer(void* buf)
@@ -636,7 +762,7 @@ void SD::clean_buffer(void* buf)
         case SD_WORK_ACTION_READ:
             if (work_stack->status == SD_READ_STATUS_BUFFER_DIRTY)
             {
-                work_stack->status = SD_READ_STATUS_WAIT_TRAN;
+                work_stack->status = SD_READ_STATUS_CONTINUE_MULTI;
                 work_stack->buf = buf;
                 work_stack->sector++;
 //                 printf("WAIT TRAN: ");

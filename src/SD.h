@@ -76,6 +76,10 @@ public:
 	void dma_configure(dma_config*);
 
 	void work_stack_work(void);
+
+    void work_stack_read(void);
+    void work_stack_write(void);
+    
 	void work_stack_debug(void);
 protected:
 	SPI* spi;
