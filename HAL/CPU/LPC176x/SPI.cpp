@@ -8,7 +8,7 @@
 #include "lpc17xx_clkpwr.h"
 
 #include "gpio.h"
-#include "pins_platform.h"
+#include "platform_pins.h"
 
 #include "mri.h"
 

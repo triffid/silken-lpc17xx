@@ -45,6 +45,7 @@ enum {
     SD_WRITE_STATUS_WAIT_BSY,
     SD_WRITE_STATUS_DMA,
     SD_WRITE_STATUS_CHECKSUM,
+    SD_WRITE_STATUS_WAIT_RESPONSE,
     SD_WRITE_STATUS_BUFFER_DIRTY
 } SD_WRITE_STATUS;
 
@@ -670,7 +671,7 @@ void SD::work_stack_write()
                     work_flags |= SD_FLAG_ERROR;
                     if (w->receiver)
                         w->receiver->sd_write_complete(this, w->sector, w->buf, w->status + 1);
-                    return
+                    return;
                 }
 
                 w->status = SD_WRITE_STATUS_DMA;
