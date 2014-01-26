@@ -36,9 +36,6 @@ struct _platform_serialdata
 static Serial* instance[4];
 
 extern "C" {
-// 	static struct _platform_serialdata serialdatas[2];
-// 	static int serialdata_index = 0;
-	
 	void UART0_IRQHandler(void)
 	{
 		if (instance[0]) instance[0]->isr();
@@ -229,7 +226,6 @@ static LPC_UART_TypeDef* NXPUART_init(PinName txpin, PinName rxpin, int baudrate
 	return u;
 }
 
-extern "C" void* _sbrk(int);
 Serial::Serial(PinName tx, PinName rx, int baud)
 {
 	// TODO: stop futzing around, do this properly
@@ -378,8 +374,8 @@ void Serial::rx_isr()
 	{
 		char c = data->u->RBR;
 		data->rxbuf[data->rxhead] = c;
-		data->rxhead = (data->rxhead + 1) & (BUFSIZE - 1);
-		if (data->rxhead == data->rxtail)
-			data->rxtail = (data->rxtail + 1) & (BUFSIZE - 1);
+		uint16_t nh = (data->rxhead + 1) & (BUFSIZE - 1);
+		if (nh != data->rxtail)
+			data->rxhead = nh;
 	}
 }
