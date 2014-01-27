@@ -572,6 +572,7 @@ void SD::work_stack_read()
             uint8_t r;
             r = spi->transfer(0xFF);
 
+            // I have no idea why, but removing this printf causes us to hard-lock
             printf("0x%X", r);
 
             if (r != 0xFE)
