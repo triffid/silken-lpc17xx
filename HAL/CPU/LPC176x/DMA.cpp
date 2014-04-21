@@ -102,7 +102,7 @@ void DMA::setup(uint32_t size)
 	chconfig.ChannelNum = data->dma_channel;
 	chconfig.TransferSize = size;
 	chconfig.TransferWidth = GPDMA_WIDTH_BYTE;
-	chconfig.DMALLI = NULL;
+	chconfig.DMALLI = (uint32_t) NULL;
 	
 	dma_config sconfig, dconfig;
 	
