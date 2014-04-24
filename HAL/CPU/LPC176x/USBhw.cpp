@@ -1,5 +1,7 @@
 #include "USBhw.h"
 
+#include <cstdio>
+
 #include "USBClient.h"
 
 #include "USB_LPC17xx_SIE.h"
@@ -23,9 +25,9 @@
 #define DV                          (1<<10)
 #define PKT_RDY                     (1<<11)
 
-USBhw* instance;
+USBhw* USBhw::instance;
 
-USBhw::USBhw(USBhw_callback_receiver* callback)
+USBhw::USBhw()
 {
     instance = this;
 
@@ -52,10 +54,11 @@ USBhw::USBhw(USBhw_callback_receiver* callback)
 
     // work around OSX behaviour where if the device disconnects and quickly reconnects, it assumes it's the same device instead of checking
 //     wait_ms(1000);
+    for (volatile uint32_t c = 1<<18; c; c--);
 
     // Set the maximum packet size for the control endpoints
-    realiseEndpoint(IDX2EP(EP0IN), 64, 0);
-    realiseEndpoint(IDX2EP(EP0OUT), 64, 0);
+    realiseEndpoint(EP0IN,  EP0_MAX_PACKET, 0);
+    realiseEndpoint(EP0OUT, EP0_MAX_PACKET, 0);
 
     // Attach IRQ
     //     instance = this;
@@ -68,6 +71,8 @@ USBhw::USBhw(USBhw_callback_receiver* callback)
     LPC_USB->USBDevIntEn = EP_SLOW | DEV_STAT | FRAME;
     //     enableEndpointEvent(EP0IN);
     //     enableEndpointEvent(EP0OUT);
+
+    state = (USBhw_state*) 0UL;
 }
 
 void USBhw::connect()
@@ -104,7 +109,7 @@ uint8_t USBhw::index_to_endpoint(uint8_t index, USB_ENDPOINT_TYPES type)
 uint8_t USBhw::read( uint8_t bEP, uint8_t* buffer)
 {
     // Read from an OUT endpoint
-    uint32_t size;
+    uint8_t size;
     uint32_t i;
     uint32_t data = 0;
     uint8_t  offset;
@@ -126,6 +131,8 @@ uint8_t USBhw::read( uint8_t bEP, uint8_t* buffer)
 
     offset = 0;
 
+    printf("[USB:R%u:%u:", bEP, size);
+
     if (size > 0)
     {
         for (i = 0; i < size; i++)
@@ -136,6 +143,7 @@ uint8_t USBhw::read( uint8_t bEP, uint8_t* buffer)
 
             // extract a byte
             *buffer = (data>>offset) & 0xff;
+            printf("0x%02X ", *buffer);
             buffer++;
 
             // move on to the next byte
@@ -146,6 +154,8 @@ uint8_t USBhw::read( uint8_t bEP, uint8_t* buffer)
     {
         dummyRead = LPC_USB->USBRxData;
     }
+
+    printf("]");
 
     while ((LPC_USB->USBDevIntSt & RxENDPKT) == 0)
         dummyRead = LPC_USB->USBRxData;
@@ -180,11 +190,16 @@ uint8_t USBhw::write(uint8_t bEP, uint8_t* buffer, uint8_t length)
 
     LPC_USB->USBTxPLen = length;
 
+    printf("[USB:W%u(%u):%u:", bEP, endpoint, length);
+
     while (LPC_USB->USBCtrl & WR_EN)
     {
         LPC_USB->USBTxData = (buffer[3] << 24) | (buffer[2] << 16) | (buffer[1] << 8) | buffer[0];
+        printf("0x%02X 0x%02X 0x%02X 0x%02X ", buffer[0], buffer[1], buffer[2], buffer[3]);
         buffer += 4;
     }
+
+    printf("]");
 
     // Clear WR_EN to cover zero length packet case
     LPC_USB->USBCtrl = 0;
@@ -193,6 +208,32 @@ uint8_t USBhw::write(uint8_t bEP, uint8_t* buffer, uint8_t length)
     SIEvalidateBuffer();
 
     return length;
+}
+
+void USBhw::set_address(uint16_t addr)
+{
+//     SIEsetAddress(addr);
+    state = (USBhw_state*) ((uint32_t) addr);
+}
+
+void USBhw::configure()
+{
+    SIEconfigureDevice();
+}
+
+void USBhw::unconfigure()
+{
+    SIEunconfigureDevice();
+}
+
+void USBhw::stall(uint8_t endpoint)
+{
+    stallEndpoint(endpoint);
+}
+
+void USBhw::unstall(uint8_t endpoint)
+{
+    unstallEndpoint(endpoint);
 }
 
 extern "C" {
@@ -234,10 +275,10 @@ void USBhw::usbisr(void)
             // Bus reset
             usb_reset();
 
-            realiseEndpoint(IDX2EP(EP0IN), 64, 0);
-            realiseEndpoint(IDX2EP(EP0OUT), 64, 0);
+            realiseEndpoint(EP0IN,  EP0_MAX_PACKET, 0);
+            realiseEndpoint(EP0OUT, EP0_MAX_PACKET, 0);
 
-            SIEsetMode(0);
+            SIEsetMode(SIE_MODE_INAK_CI | SIE_MODE_INAK_CO);
         }
 
         if (devStat & SIE_DS_CON_CH)
@@ -257,18 +298,24 @@ void USBhw::usbisr(void)
         LPC_USB->USBDevIntClr = EP_SLOW;
 
         // Process each endpoint interrupt
-        if (LPC_USB->USBEpIntSt & EP(EP0OUT))
+        if (LPC_USB->USBEpIntSt & (1UL << EP2IDX(EP0OUT)))
         {
-            uint8_t bEPStat = selectEndpointClearInterrupt(IDX2EP(EP0OUT));
+            uint8_t bEPStat = selectEndpointClearInterrupt(EP0OUT);
 
             if (bEPStat & SIE_SE_STP) // this is a setup packet
                 usb_setup();
             else if (bEPStat & EPSTAT_FE) // OUT endpoint, FE = 1 - data in buffer
                 usb_endpoint_rx(EP0OUT);
         }
-        if (LPC_USB->USBEpIntSt & EP(EP0IN))
+        if (LPC_USB->USBEpIntSt & (1UL << EP2IDX(EP0IN)))
         {
-            uint8_t bEPStat = selectEndpointClearInterrupt(IDX2EP(EP0IN));
+            uint8_t bEPStat = selectEndpointClearInterrupt(EP0IN);
+
+            if (state)
+            {
+                SIEsetAddress((uint16_t) (((uint32_t) state) & 0xFFFF));
+                state = (USBhw_state*) 0;
+            }
 
             if ((bEPStat & EPSTAT_FE) == 0) // IN endpoint, FE = 0 - empty space in buffer
                 usb_endpoint_tx_complete(EP0IN);

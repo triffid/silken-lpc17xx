@@ -7,4 +7,11 @@
 	#define DEBUG_PRINTF(...) do {} while (0)
 #endif
 
+#include <gpio.h>
+
+extern "C" {
+    extern GPIO leds[5];
+    void setleds(GPIO* leds, int l);
+}
+
 #endif /* _DEBUG_H */

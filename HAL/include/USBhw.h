@@ -3,6 +3,12 @@
 
 #include <cstdint>
 
+// control endpoints
+#define EP0OUT 0
+#define EP0IN  0x80
+
+#define EP0_MAX_PACKET 64
+
 typedef enum {
     CONTROL,
     INTERRUPT,
@@ -10,19 +16,13 @@ typedef enum {
     ISOCHRONOUS
 } USB_ENDPOINT_TYPES;
 
-struct _USBhw_state;
-typedef struct _USBhw_state USBhw_state;
-
-class USBhw_callback_receiver
-{
-public:
-};
+struct USBhw_state;
 
 class USBhw;
 class USBhw
 {
 public:
-    USBhw(USBhw_callback_receiver*);
+    USBhw();
 
     /*
      * USB stack must implement these callbacks
@@ -39,8 +39,6 @@ public:
 
     virtual void usb_sof(uint16_t frame) = 0;
 
-    virtual void usb_setup() = 0;
-
     virtual bool usb_endpoint_tx_nak(uint8_t endpoint) = 0;
     virtual bool usb_endpoint_tx_complete(uint8_t endpoint) = 0;
 
@@ -51,8 +49,15 @@ public:
      * USB hardware methods
      */
 
-    void connect();
-    void disconnect();
+    void    connect();
+    void    disconnect();
+
+    void    set_address(uint16_t);
+    void    configure();
+    void    unconfigure();
+
+    void    stall(uint8_t endpoint);
+    void    unstall(uint8_t endpoint);
 
     bool    begin_read( uint8_t endpoint, uint8_t* buffer);
     bool    begin_write(uint8_t endpoint, uint8_t* buffer);
@@ -62,12 +67,12 @@ public:
 
     uint8_t index_to_endpoint(uint8_t index, USB_ENDPOINT_TYPES type);
 
-    void usbisr(void);
+    void    usbisr(void);
 
-    static USBhw* instance;
+    static  USBhw* instance;
 
 protected:
-    USBhw_state* state;
+    struct USBhw_state* state;
 };
 
 #endif /* _USBHW_H */

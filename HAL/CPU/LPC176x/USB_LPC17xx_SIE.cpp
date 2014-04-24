@@ -6,6 +6,43 @@
     #define setled(a, b) do {} while (0)
 #endif
 
+// Serial Interface Engine (SIE)
+#define SIE_WRITE   (0x01)
+#define SIE_READ    (0x02)
+#define SIE_COMMAND (0x05)
+#define SIE_CMD_CODE(phase, data) ((phase<<8)|(data<<16))
+
+// SIE Command codes
+#define SIE_CMD_SET_ADDRESS        (0xD0)
+#define SIE_CMD_CONFIGURE_DEVICE   (0xD8)
+#define SIE_CMD_SET_MODE           (0xF3)
+#define SIE_CMD_READ_FRAME_NUMBER  (0xF5)
+#define SIE_CMD_READ_TEST_REGISTER (0xFD)
+#define SIE_CMD_SET_DEVICE_STATUS  (0xFE)
+#define SIE_CMD_GET_DEVICE_STATUS  (0xFE)
+#define SIE_CMD_GET_ERROR_CODE     (0xFF)
+#define SIE_CMD_READ_ERROR_STATUS  (0xFB)
+
+#define SIE_CMD_SELECT_ENDPOINT(endpoint)                 (0x00+endpoint)
+#define SIE_CMD_SELECT_ENDPOINT_CLEAR_INTERRUPT(endpoint) (0x40+endpoint)
+#define SIE_CMD_SET_ENDPOINT_STATUS(endpoint)             (0x40+endpoint)
+
+#define SIE_CMD_CLEAR_BUFFER    (0xF2)
+#define SIE_CMD_VALIDATE_BUFFER (0xFA)
+
+// SIE Device Set Address register
+#define SIE_DSA_DEV_EN  (1<<7)
+
+// SIE Configue Device register
+#define SIE_CONF_DEVICE (1<<0)
+
+// Set Endpoint Status command
+#define SIE_SES_ST      (1<<0)
+#define SIE_SES_DA      (1<<5)
+#define SIE_SES_RF_MO   (1<<6)
+#define SIE_SES_CND_ST  (1<<7)
+
+#define EP(a)         (1UL << (a))
 
 
 volatile uint32_t USBEpIntEn;
@@ -140,14 +177,14 @@ void enableEndpointEvent(uint8_t bEP) {
     uint8_t endpoint = EP2IDX(bEP);
 
     // Enable an endpoint interrupt
-    LPC_USB->USBEpIntEn |= EP(endpoint);
+    USBEpIntEn |= EP(endpoint);
 }
 
 void disableEndpointEvent(uint8_t bEP) {
     uint8_t endpoint = EP2IDX(bEP);
 
     // Disable an endpoint interrupt
-    LPC_USB->USBEpIntEn &= ~EP(endpoint);
+    USBEpIntEn &= ~EP(endpoint);
 }
 
 bool realiseEndpoint(uint8_t bEP, uint32_t maxPacket, uint32_t flags)
@@ -195,10 +232,10 @@ void stallEndpoint(uint8_t bEP)
     uint8_t endpoint = EP2IDX(bEP);
 
     // Stall an endpoint
-    if ((endpoint==EP0IN) || (endpoint==EP0OUT))
+    if (endpoint <= 1)
     {
         // Conditionally stall both control endpoints
-        SIEsetEndpointStatus(IDX2EP(EP0OUT), SIE_SES_CND_ST);
+        SIEsetEndpointStatus(IDX2EP(0), SIE_SES_CND_ST);
     }
     else
     {

@@ -1,7 +1,7 @@
 #ifndef _GPIO_H
 #define	_GPIO_H
 
-#include <stdint.h>
+#include <cstdint>
 
 #define	GPIO_DIR_INPUT 0
 #define	GPIO_DIR_OUTPUT 1

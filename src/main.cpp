@@ -40,6 +40,8 @@
 #include "SD.h"
 #include "fat.h"
 
+#include "USBClient.h"
+
 #include "platform_utils.h"
 #include "platform_memory.h"
 
@@ -173,26 +175,25 @@ int main()
 	if ((r = sd->init()) < 1)
 	{
 		printf("SD init failed: %d!\n", r);
-		for(;;)
-			__WFI();
 	}
+	else {
+    // 	uint8_t* rbuf = (uint8_t*) AHB0.alloc(512);
 
-// 	uint8_t* rbuf = (uint8_t*) AHB0.alloc(512);
+    // 	sd->begin_read(0, rbuf, &sar_dumper);
+    // 	for (int z = 0; z < 32; z++)
+    // 		sd->begin_read(133 + z, rbuf, &sar_dumper);
 
-// 	sd->begin_read(0, rbuf, &sar_dumper);
-// 	for (int z = 0; z < 32; z++)
-// 		sd->begin_read(133 + z, rbuf, &sar_dumper);
+        Fat* fat = new Fat();
 
-	Fat* fat = new Fat();
+        _fat_mount_ioresult fmount;
 
-	_fat_mount_ioresult fmount;
+        fat->f_mount(&fmount, sd);
 
-	fat->f_mount(&fmount, sd);
+        while (fmount.fini == 0)
+            sd->on_idle();
 
-	while (fmount.fini == 0)
-		sd->on_idle();
-
-	printf("Mounted!\n");
+        printf("Mounted!\n");
+    }
 
     Clock clock;
 
@@ -200,22 +201,32 @@ int main()
 
     uint8_t* buf = (uint8_t*) AHB0.alloc(512);
 
-    printf("Begin read Sectors 0-255\n");
-    sd->begin_read(0, 256, buf, &sar_dumper);
+    USBClient usb;
+
+    usb.connect();
+
+//     printf("Begin read Sectors 0-255\n");
+//     sd->begin_read(0, 256, buf, &sar_dumper);
+
+    printf("Main loop\n");
 
     for (;;)
     {
         if (isp_btn->get() == 0)
             __debugbreak();
+
 		sd->on_idle();
+        usb.usbisr();
+
         if (clock.flag_1s_test(clockflag))
         {
-            if (sar_dumper.last_sector >= 255)
-            {
-                printf("Time is %llu\n", clock.time_s());
-                printf("Begin read Sectors 0-255\n");
-                sd->begin_read(0, 256, buf, &sar_dumper);
-            }
+//             if (sar_dumper.last_sector >= 255)
+//             {
+//                 printf("Time is %llu\n", clock.time_s());
+//                 printf("Begin read Sectors 0-255\n");
+//                 sd->begin_read(0, 256, buf, &sar_dumper);
+//             }
+            printf(".");
         }
     }
 
