@@ -11,6 +11,9 @@
 
 #include "platform_utils.h"
 
+#define TRACE(...) printf(__VA_ARGS__)
+// #define TRACE(...) do {} while (0)
+
 USBClient::USBClient()
 {
     usbdesc_device d = {
@@ -80,7 +83,7 @@ void USBClient::usb_connect()
     for (USBFunction* f : functions)
         f->event_connect(*this);
 
-    printf("USB connected\n");
+    TRACE("USB connected\n");
 }
 
 void USBClient::usb_disconnect()
@@ -88,7 +91,7 @@ void USBClient::usb_disconnect()
     for (USBFunction* f : functions)
         f->event_disconnect(*this);
 
-    printf("USB disconnected\n");
+    TRACE("USB disconnected\n");
 }
 
 void USBClient::usb_reset()
@@ -96,7 +99,7 @@ void USBClient::usb_reset()
     for (USBFunction* f : functions)
         f->event_reset(*this);
 
-    printf("USB reset\n");
+    TRACE("USB reset\n");
 }
 
 void USBClient::usb_suspend()
@@ -104,7 +107,7 @@ void USBClient::usb_suspend()
     for (USBFunction* f : functions)
         f->event_suspend(*this);
 
-    printf("USB suspend\n");
+    TRACE("USB suspend\n");
 }
 
 void USBClient::usb_wake()
@@ -112,7 +115,7 @@ void USBClient::usb_wake()
     for (USBFunction* f : functions)
         f->event_resume(*this);
 
-    printf("USB wake\n");
+    TRACE("USB wake\n");
 }
 
 void USBClient::usb_setup()
@@ -126,7 +129,7 @@ void USBClient::usb_setup()
     control.transfer_remaining = setup.wLength;
     control.zlp = ((setup.wLength == 0) && ((setup.bmRequestType & 1) == 0));
 
-    printf("USB setup: type 0x%02X req 0x%02X value 0x%04X index 0x%04X data %ub\n", setup.bmRequestType, setup.bRequest, setup.wValue, setup.wIndex, setup.wLength);
+    TRACE("USB setup: type 0x%02X req 0x%02X value 0x%04X index 0x%04X data %ub\n", setup.bmRequestType, setup.bRequest, setup.wValue, setup.wIndex, setup.wLength);
 
     // Direction: 0 = OUT, 1 = IN
     uint8_t direction = setup.bmRequestType >> 7;
@@ -139,6 +142,7 @@ void USBClient::usb_setup()
     {
         case RQ_GET_STATUS:
             // TODO: check type and wIndex
+            TRACE("USB get status\n");
             transfer_buffer[0] = 0;
             transfer_buffer[1] = 0;
             break;
@@ -148,7 +152,7 @@ void USBClient::usb_setup()
             break;
         case RQ_SET_ADDRESS:
             set_address(setup.wValue);
-            printf("USB got address 0x%04X\n", setup.wValue);
+            TRACE("USB got address 0x%04X\n", setup.wValue);
             control.transfer_remaining = 0;
             control.zlp = true;
             break;
@@ -159,25 +163,26 @@ void USBClient::usb_setup()
             switch (type)
             {
                 case DT_DEVICE:
-                    printf("USB get Device descriptor\n");
+                    TRACE("USB get Device descriptor\n");
 
                     control.buffer = (uint8_t*) &device_descriptor;
                     control.transfer_remaining = min(control.setup.wLength, DL_DEVICE);
 
                     break;
                 case DT_CONFIGURATION:
-                    printf("USB get Configuration descriptor\n");
+                    TRACE("USB get Configuration descriptor\n");
 
                     control.transfer_remaining = configuration_descriptor.wTotalLength;
 
                     break;
                 case DT_STRING:
-                    printf("USB get String descriptor\n");
+                    TRACE("USB get String descriptor\n");
                     control.transfer_remaining = 0;
                     control.zlp = true;
                     // TODO
                     break;
                 default:
+                    TRACE("USB get unknown descriptor with type 0x%02X\n", type);
                     control.transfer_remaining = 0;
                     control.zlp = true;
                     break;
@@ -185,13 +190,15 @@ void USBClient::usb_setup()
             break;
         }
         case RQ_SET_DESCRIPTOR:
+            TRACE("USB set descriptor: error unsupported\n");
             stall(EP0IN); // flag error
             break;
         case RQ_GET_CONFIGURATION:
+            TRACE("USB get Configuration\n");
             transfer_buffer[0] = configuration_descriptor.bConfigurationValue;
             break;
         case RQ_SET_CONFIGURATION:
-            printf("USB set Configuration: WE ARE GO\n");
+            TRACE("USB set Configuration: WE ARE GO\n");
             if (setup.wValue == 0)
                 unconfigure();
             else
@@ -202,8 +209,10 @@ void USBClient::usb_setup()
             }
             break;
         case RQ_GET_INTERFACE:
+            TRACE("USB get interface\n");
             break;
         case RQ_SET_INTERFACE:
+            TRACE("USB set interface\n");
             break;
         case RQ_SYNC_FRAME:
             break;
@@ -222,7 +231,7 @@ void USBClient::usb_sof(uint16_t frame)
 
 bool USBClient::usb_endpoint_tx_nak(uint8_t endpoint)
 {
-    printf("[EP%dIN NAK]", endpoint);
+    TRACE("[EP%dIN NAK]", endpoint);
     return usb_endpoint_tx_complete(endpoint);
 }
 
@@ -232,7 +241,7 @@ bool USBClient::usb_endpoint_tx_complete(uint8_t endpoint)
     {
         if (control.transfer_remaining > 0)
         {
-            printf("EP0IN/Control: bmRequestType=0x%02X bRequest=0x%02X wValue=0x%04X wIndex=%d wLength=%db / transfer_remaining=%db buffer=%p(%p)\n", control.setup.bmRequestType, control.setup.bRequest, control.setup.wValue, control.setup.wIndex, control.setup.wLength, control.transfer_remaining, control.buffer, transfer_buffer);
+            TRACE("EP0IN/Control: bmRequestType=0x%02X bRequest=0x%02X wValue=0x%04X wIndex=%d wLength=%db / transfer_remaining=%db buffer=%p(%p)\n", control.setup.bmRequestType, control.setup.bRequest, control.setup.wValue, control.setup.wIndex, control.setup.wLength, control.transfer_remaining, control.buffer, transfer_buffer);
 
             uint8_t packet_length = 0;
 
@@ -310,10 +319,10 @@ bool USBClient::usb_endpoint_tx_complete(uint8_t endpoint)
                 packet_length = min(control.transfer_remaining, EP0_MAX_PACKET);
             }
 
-            printf("[EP0IN:%d:", packet_length);
+            TRACE("[EP0IN:%d:", packet_length);
             for (int i = 0; i < packet_length; i++)
-                printf("0x%02X ", control.buffer[i]);
-            printf("]\n");
+                TRACE("0x%02X ", control.buffer[i]);
+            TRACE("]\n");
 
             write(endpoint, control.buffer, packet_length);
 
@@ -324,20 +333,20 @@ bool USBClient::usb_endpoint_tx_complete(uint8_t endpoint)
         }
         else if (control.zlp)
         {
-            printf("[EP0IN:0z]");
+            TRACE("[EP0IN:0z]");
             write(endpoint, NULL, 0);
             control.zlp = false;
         }
         else
         {
-            printf("[EP0IN complete]");
+            TRACE("[EP0IN complete]");
             control.transfer_remaining = 0;
         }
     }
     else
     {
         // TODO: invoke appropriate USB function handler
-        printf("[EP%dIN:stall]", endpoint);
+        TRACE("[EP%dIN:stall]", endpoint);
         stall(endpoint);
     }
     return true;
@@ -345,18 +354,18 @@ bool USBClient::usb_endpoint_tx_complete(uint8_t endpoint)
 
 bool USBClient::usb_endpoint_rx_nak(uint8_t endpoint)
 {
-    printf("[EP%dOUT NAK]", endpoint);
+    TRACE("[EP%dOUT NAK]", endpoint);
     return true;
 }
 
 bool USBClient::usb_endpoint_rx(uint8_t endpoint)
 {
-    printf("[EP%dOUT", endpoint);
+    TRACE("[EP%dOUT", endpoint);
 
     if (endpoint == EP0OUT)
     {
         uint8_t i = read(endpoint, control.buffer);
-        printf(":%d", i);
+        TRACE(":%d", i);
         if (i > 0)
         {
             control.transfer_remaining -= i;
@@ -371,7 +380,7 @@ bool USBClient::usb_endpoint_rx(uint8_t endpoint)
         // TODO: invoke appropriate USB function handler
     }
 
-    printf("]");
+    TRACE("]");
 
     return true;
 }
