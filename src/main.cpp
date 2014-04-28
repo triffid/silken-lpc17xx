@@ -42,8 +42,12 @@
 
 #include "USBClient.h"
 
+#include "DFU.h"
+
 #include "platform_utils.h"
 #include "platform_memory.h"
+
+#define  min(a,b) (((a) < (b))?(a):(b))
 
 Serial* uart = NULL;
 
@@ -115,8 +119,6 @@ int main()
 {
 	int i = 0;
 	
-	__mriInit("MRI_UART_0 MRI_UART_SHARE MRI_UART_BAUD=1000000");
-	
 	// 3 bits for group, 2 bits subgroup
 	NVIC_SetPriorityGrouping(4);
 
@@ -146,17 +148,10 @@ int main()
 	
 	uart = new Serial(UART0_TX, UART0_RX, APPBAUD);
 
-	setleds(leds, 1);
+    __mriInit("MRI_UART_0 MRI_UART_SHARE MRI_UART_BAUD=1000000");
 
-//     athing[0] = 'S';
-//     athing[1] = 't';
-//     athing[2] = 'a';
-//     athing[3] = 'r';
-//     athing[4] = 't';
-//     athing[5] = '\n';
-//     athing[6] = 0;
-	
-// 	uart->write(athing, 6);
+    setleds(leds, 1);
+
     uart->write("Start\n", 6);
 	
 	printf("Start 2\n");
@@ -203,6 +198,10 @@ int main()
 
     USBClient usb;
 
+    DFU dfu;
+
+    usb.add_function(&dfu);
+
     usb.connect();
 
 //     printf("Begin read Sectors 0-255\n");
@@ -216,6 +215,7 @@ int main()
             __debugbreak();
 
 		sd->on_idle();
+        dfu.on_idle();
         usb.usbisr();
 
         if (clock.flag_1s_test(clockflag))
@@ -227,6 +227,24 @@ int main()
 //                 sd->begin_read(0, 256, buf, &sar_dumper);
 //             }
             printf(".");
+        }
+
+        uint32_t r = uart->can_read();
+        if (r)
+        {
+            printf("S< ");
+
+            uint8_t srx[32];
+
+            while (r)
+            {
+                uint32_t i = min(r, sizeof(srx));
+                uart->read(srx, i);
+                uart->write(srx, i);
+                r -= i;
+            }
+
+            printf("\n");
         }
     }
 

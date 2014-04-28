@@ -81,6 +81,8 @@ uint8_t  SIEReadData(uint32_t command);
 void     SIEsetDeviceStatus(uint8_t status);
 uint8_t  SIEgetDeviceStatus(void);
 
+uint8_t  SIEgetError(void);
+
 void     SIEsetMode(uint8_t mode);
 
 void     SIEsetAddress(uint8_t address);

@@ -54,6 +54,13 @@ USBClient::USBClient()
         }
     };
     memcpy(&language_descriptor, &l, sizeof(language_descriptor));
+
+    descriptors.push_back((usbdesc_base*) &device_descriptor);
+    descriptors.push_back((usbdesc_base*) &configuration_descriptor);
+    descriptors.push_back((usbdesc_base*) &language_descriptor);
+
+    descriptor_index = 0;
+    byte_index = 0;
 }
 
 void USBClient::add_function(USBFunction* f)
@@ -76,6 +83,63 @@ void USBClient::remove_function(USBFunction* f)
             return;
         }
     }
+}
+
+int USBClient::addDescriptor(usbdesc_base* d)
+{
+    descriptors.push_back(d);
+
+    configuration_descriptor.wTotalLength += d->bLength;
+
+    return descriptors.size();
+}
+
+int USBClient::addInterface(usbdesc_interface* i)
+{
+    descriptors.push_back((usbdesc_base*) i);
+
+    configuration_descriptor.wTotalLength += i->bLength;
+
+    i->bInterfaceNumber = configuration_descriptor.bNumInterfaces;
+
+    if (i->bAlternateSetting == 0)
+        configuration_descriptor.bNumInterfaces++;
+
+    return i->bInterfaceNumber;
+}
+
+int USBClient::addEndpoint(usbdesc_endpoint* e)
+{
+    int k = 0;
+    usbdesc_interface* lastif = NULL;
+    for (auto d : descriptors)
+    {
+        usbdesc_endpoint* de = (usbdesc_endpoint*) d;
+        if (d->bDescType == DT_INTERFACE)
+            lastif = (usbdesc_interface*) d;
+        if ((d->bDescType == DT_ENDPOINT) && ((e->bmAttributes & 3) == (de->bmAttributes & 3)) && ((e->bEndpointAddress & 0x80) == (de->bEndpointAddress & 0x80)) && (lastif) && (lastif->bAlternateSetting == 0))
+            k++;
+    }
+
+    e->bEndpointAddress = (index_to_endpoint(k, (USB_ENDPOINT_TYPES) (e->bmAttributes & 3)) & 0x7F) | (e->bEndpointAddress & 0x80);
+
+    descriptors.push_back((usbdesc_base*) e);
+
+    configuration_descriptor.wTotalLength += e->bLength;
+
+    return k;
+}
+
+int USBClient::addString(const void* s)
+{
+    int k = 0;
+    for (auto d : descriptors)
+        if (d->bDescType == DT_STRING)
+            k++;
+
+    descriptors.push_back((usbdesc_base*) s);
+
+    return k;
 }
 
 void USBClient::usb_connect()
@@ -172,7 +236,9 @@ void USBClient::usb_setup()
                 case DT_CONFIGURATION:
                     TRACE("USB get Configuration descriptor\n");
 
-                    control.transfer_remaining = configuration_descriptor.wTotalLength;
+                    control.transfer_remaining = min(control.setup.wLength, configuration_descriptor.wTotalLength);
+                    byte_index = 0;
+                    descriptor_index = 1;
 
                     break;
                 case DT_STRING:
@@ -243,41 +309,41 @@ bool USBClient::usb_endpoint_tx_complete(uint8_t endpoint)
         {
             TRACE("EP0IN/Control: bmRequestType=0x%02X bRequest=0x%02X wValue=0x%04X wIndex=%d wLength=%db / transfer_remaining=%db buffer=%p(%p)\n", control.setup.bmRequestType, control.setup.bRequest, control.setup.wValue, control.setup.wIndex, control.setup.wLength, control.transfer_remaining, control.buffer, transfer_buffer);
 
+            for (volatile uint32_t r = 0; r < 1UL<<15; r++);
+
             uint8_t packet_length = 0;
 
             // detect RQ_GET_DESCRIPTOR(DT_CONFIGURATION)
             if ((control.setup.bmRequestType == 0x80) && (control.setup.bRequest = RQ_GET_DESCRIPTOR) && ((control.setup.wValue >> 8) == DT_CONFIGURATION))
             {
-                if (control.transfer_remaining == configuration_descriptor.wTotalLength)
-                {
-                    // this is the first packet of the transfer
-                    function_index = descriptor_index = byte_index = 0;
-                    packet_length = min(DL_CONFIGURATION, EP0_MAX_PACKET);
-
-                    memcpy(control.buffer, &configuration_descriptor, packet_length);
-                }
-                else if ((EP0_MAX_PACKET < DL_CONFIGURATION) && (control.transfer_remaining == (configuration_descriptor.wTotalLength - EP0_MAX_PACKET)))
-                {
-                    // this is the 2nd packet of a transfer with 8-byte packets
-                    // since DL_CONFIGURATION > 8, we need to insert the remaining byte(s)
-                    packet_length = DL_CONFIGURATION - EP0_MAX_PACKET;
-                    memcpy(control.buffer, &((uint8_t*) &configuration_descriptor)[EP0_MAX_PACKET], packet_length);
-                }
+//                 TRACE("CONF DESC di %d bi %d\n", descriptor_index, byte_index);
+//                 if (control.transfer_remaining == configuration_descriptor.wTotalLength)
+//                 {
+//                     // this is the first packet of the transfer
+//                     byte_index = 0;
+//                     descriptor_index = 1;
+//                     packet_length = min(DL_CONFIGURATION, EP0_MAX_PACKET);
+//
+//                     memcpy(control.buffer, &configuration_descriptor, packet_length);
+//
+//                     byte_index += packet_length;
+//                 }
 
                 /*
                  * gather various descriptors into transfer_buffer
-                 * using state information stored in function_index, descriptor_index, byte_index
+                 * using state information stored in descriptor_index, byte_index
                  * and using packet_length as buffer pointer
                  */
-                while ((packet_length < EP0_MAX_PACKET) && (packet_length < control.transfer_remaining))
+                while (packet_length < min(EP0_MAX_PACKET, control.transfer_remaining))
                 {
-                    uint8_t rmn     = min(EP0_MAX_PACKET - packet_length, control.transfer_remaining - packet_length);
+                    uint8_t rmn     = min(EP0_MAX_PACKET, control.transfer_remaining) - packet_length;
 
-                    usbdesc_base* d = functions[function_index]->descriptors[descriptor_index];
+                    usbdesc_base* d = descriptors[descriptor_index];
                     uint8_t* db     = ((uint8_t*) d) + byte_index;
 
                     if ((d->bLength - byte_index) > rmn)
                     {
+                        TRACE("CONF DESC partial descriptor %d (type 0x%02X, @%db (of %d) + %db)\n", descriptor_index, d->bDescType, byte_index, d->bLength, rmn);
                         // current descriptor is larger than remaining buffer space
                         memcpy(&transfer_buffer[packet_length], db, rmn);
 
@@ -286,31 +352,30 @@ bool USBClient::usb_endpoint_tx_complete(uint8_t endpoint)
                     }
                     else
                     {
-                        // current descriptor can fit entirely in the buffer. copy it, then find the next descriptor
-                        memcpy(&transfer_buffer[packet_length], db, (d->bLength - byte_index) - rmn);
+                        uint8_t c = min(rmn, d->bLength - byte_index);
+                        TRACE("CONF DESC entire descriptor %d (type 0x%02X, @%db of %db. %db rmn, copy %db)\n", descriptor_index, d->bDescType, byte_index, d->bLength, rmn, c);
 
-                        packet_length += (d->bLength - byte_index) - rmn;
+                        for (volatile uint32_t r = 1UL << 15; r; r--);
+
+                        // current descriptor can fit entirely in the buffer. copy it, then find the next descriptor
+                        memcpy(&transfer_buffer[packet_length], db, c);
+
+                        packet_length += c;
 
                         // skip strings
+                        byte_index = 0;
                         do
                         {
                             descriptor_index++;
                         }
-                            while ((functions[function_index]->descriptors[descriptor_index]->bDescType != DT_STRING) && (descriptor_index < functions[function_index]->descriptors.size()));
+                        while ((descriptor_index < descriptors.size()) && (descriptors[descriptor_index]->bDescType == DT_STRING));
 
-                        byte_index = 0;
-
-                        // check if that was the last descriptor for this function
-                        if (descriptor_index >= functions[function_index]->descriptors.size())
-                        {
-                            descriptor_index = 0;
-                            function_index++;
-
-                            // sanity check
-                            if (function_index >= functions.size())
-                                control.transfer_remaining = packet_length;
-                        }
+                        // sanity-check for last descriptor
+                        if (descriptor_index >= descriptors.size())
+                            control.transfer_remaining = packet_length;
                     }
+
+                    TRACE("CONF DESC %d of %db\n", packet_length, min(EP0_MAX_PACKET, control.transfer_remaining));
                 }
                 control.buffer = transfer_buffer;
             }

@@ -84,6 +84,12 @@ uint8_t SIEgetDeviceStatus(void) {
     return SIEReadData(SIE_CMD_GET_DEVICE_STATUS);
 }
 
+uint8_t SIEgetError(void)
+{
+    SIECommand(SIE_CMD_READ_ERROR_STATUS);
+    return SIEReadData(SIE_CMD_READ_ERROR_STATUS);
+}
+
 void SIEsetMode(uint8_t mode) {
     SIECommand(SIE_CMD_SET_MODE);
     SIEWriteData(mode);

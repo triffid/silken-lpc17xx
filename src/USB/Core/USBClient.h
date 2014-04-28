@@ -62,17 +62,11 @@ public:
      */
     // generic descriptor
     int addDescriptor(usbdesc_base*);
-    int addDescriptor(void*);
 
     // interface, endpoint, string descriptors for which we require a specific index
     int addInterface(usbdesc_interface*);
     int addEndpoint(usbdesc_endpoint*);
     int addString(const void*);
-
-    void removeDescriptor(usbdesc_base*);
-    void removeInterface(usbdesc_interface*);
-    void removeEndpoint(usbdesc_endpoint*);
-    void removeString(const void*);
 
     /*
      * usb required descriptors
@@ -84,6 +78,8 @@ public:
 protected:
     std::vector<USBFunction*> functions;
 
+    std::vector<usbdesc_base*> descriptors;
+
     usb_control_transfer control;
     uint8_t transfer_buffer[EP0_MAX_PACKET];
 
@@ -91,7 +87,6 @@ protected:
      * for gathering descriptors on REQ_GET_DESCRIPTOR(DT_CONFIGURATION)
      */
     struct {
-        uint16_t function_index;
         uint16_t descriptor_index;
         uint16_t byte_index;
     };

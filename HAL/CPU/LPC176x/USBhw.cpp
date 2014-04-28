@@ -25,6 +25,9 @@
 #define DV                          (1<<10)
 #define PKT_RDY                     (1<<11)
 
+#define TRACE(...) printf(__VA_ARGS__)
+// #define TRACE(...) do {} while (0)
+
 USBhw* USBhw::instance;
 
 USBhw::USBhw()
@@ -131,7 +134,7 @@ uint8_t USBhw::read( uint8_t bEP, uint8_t* buffer)
 
     offset = 0;
 
-    printf("[USB:R%u:%u:", bEP, size);
+    TRACE("[USB:R%u:%u:", bEP, size);
 
     if (size > 0)
     {
@@ -143,7 +146,7 @@ uint8_t USBhw::read( uint8_t bEP, uint8_t* buffer)
 
             // extract a byte
             *buffer = (data>>offset) & 0xff;
-            printf("0x%02X ", *buffer);
+            TRACE("0x%02X ", *buffer);
             buffer++;
 
             // move on to the next byte
@@ -155,7 +158,7 @@ uint8_t USBhw::read( uint8_t bEP, uint8_t* buffer)
         dummyRead = LPC_USB->USBRxData;
     }
 
-    printf("]");
+    TRACE("]");
 
     while ((LPC_USB->USBDevIntSt & RxENDPKT) == 0)
         dummyRead = LPC_USB->USBRxData;
@@ -190,16 +193,16 @@ uint8_t USBhw::write(uint8_t bEP, uint8_t* buffer, uint8_t length)
 
     LPC_USB->USBTxPLen = length;
 
-    printf("[USB:W%u(%u):%u:", bEP, endpoint, length);
+    TRACE("[USB:W%u(%u):%u:", bEP, endpoint, length);
 
     while (LPC_USB->USBCtrl & WR_EN)
     {
         LPC_USB->USBTxData = (buffer[3] << 24) | (buffer[2] << 16) | (buffer[1] << 8) | buffer[0];
-        printf("0x%02X 0x%02X 0x%02X 0x%02X ", buffer[0], buffer[1], buffer[2], buffer[3]);
+        TRACE("0x%02X 0x%02X 0x%02X 0x%02X ", buffer[0], buffer[1], buffer[2], buffer[3]);
         buffer += 4;
     }
 
-    printf("]");
+    TRACE("]");
 
     // Clear WR_EN to cover zero length packet case
     LPC_USB->USBCtrl = 0;
@@ -243,6 +246,14 @@ extern "C" {
 }
 void USBhw::usbisr(void)
 {
+//  this just continuously spams errors, things seem to work fine without checking
+//     if (LPC_USB->USBDevIntSt & ERR_INT)
+//     {
+//         uint8_t err = SIEgetError();
+//         if (err)
+//             TRACE("USB Error: 0x%02X\n", err);
+//     }
+
     if (LPC_USB->USBDevIntSt & FRAME)
     {
         // Clear interrupt status flag
@@ -259,7 +270,7 @@ void USBhw::usbisr(void)
 
         // Read device status from SIE
         uint8_t devStat = SIEgetDeviceStatus();
-        //printf("devStat: %d\r\n", devStat);
+        //TRACE("devStat: %d\r\n", devStat);
 
         if (devStat & SIE_DS_SUS_CH)
         {
