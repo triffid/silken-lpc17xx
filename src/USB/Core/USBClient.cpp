@@ -227,6 +227,7 @@ void USBClient::usb_setup()
             switch (type)
             {
                 case DT_DEVICE:
+                    // default should handle this, but debug output is nice
                     TRACE("USB get Device descriptor\n");
 
                     control.buffer = (uint8_t*) &device_descriptor;
@@ -236,22 +237,46 @@ void USBClient::usb_setup()
                 case DT_CONFIGURATION:
                     TRACE("USB get Configuration descriptor\n");
 
+                    /*
+                     * set up state variables for descriptor gather routine below
+                     */
                     control.transfer_remaining = min(control.setup.wLength, configuration_descriptor.wTotalLength);
                     byte_index = 0;
                     descriptor_index = 1;
 
                     break;
-                case DT_STRING:
-                    TRACE("USB get String descriptor\n");
-                    control.transfer_remaining = 0;
-                    control.zlp = true;
-                    // TODO
-                    break;
                 default:
-                    TRACE("USB get unknown descriptor with type 0x%02X\n", type);
+                {
+                    TRACE("USB get descriptor type 0x%02X index %d\n", type, index);
+
+                    uint8_t i = 0;
                     control.transfer_remaining = 0;
                     control.zlp = true;
+
+                    for (auto descriptor : descriptors)
+                    {
+                        if (descriptor->bDescType == type)
+                        {
+                            if (i == index)
+                            {
+                                control.buffer = (uint8_t*) descriptor;
+                                control.transfer_remaining = descriptor->bLength;
+                                control.zlp = false;
+
+                                TRACE("USB get descriptor: found!\n");
+
+                                break;
+                            }
+                            i++;
+                        }
+                    }
+
+                    if (control.transfer_remaining == 0)
+                    {
+                        TRACE("USB get descriptor: NOT found\n");
+                    }
                     break;
+                }
             }
             break;
         }
@@ -264,11 +289,14 @@ void USBClient::usb_setup()
             transfer_buffer[0] = configuration_descriptor.bConfigurationValue;
             break;
         case RQ_SET_CONFIGURATION:
-            TRACE("USB set Configuration: WE ARE GO\n");
             if (setup.wValue == 0)
+            {
+                TRACE("USB unconfigure: STOP\n");
                 unconfigure();
+            }
             else
             {
+                TRACE("USB set Configuration: WE ARE GO\n");
                 // TODO: something intelligent with wValue
                 // TODO: "realise" relevant endpoints
                 configure();
@@ -276,11 +304,14 @@ void USBClient::usb_setup()
             break;
         case RQ_GET_INTERFACE:
             TRACE("USB get interface\n");
+            // TODO: return relevant alternate interface
             break;
         case RQ_SET_INTERFACE:
             TRACE("USB set interface\n");
+            // TODO: use relevant alternate interface
             break;
         case RQ_SYNC_FRAME:
+            // TODO: handle whatever this is
             break;
     }
 
@@ -316,19 +347,6 @@ bool USBClient::usb_endpoint_tx_complete(uint8_t endpoint)
             // detect RQ_GET_DESCRIPTOR(DT_CONFIGURATION)
             if ((control.setup.bmRequestType == 0x80) && (control.setup.bRequest = RQ_GET_DESCRIPTOR) && ((control.setup.wValue >> 8) == DT_CONFIGURATION))
             {
-//                 TRACE("CONF DESC di %d bi %d\n", descriptor_index, byte_index);
-//                 if (control.transfer_remaining == configuration_descriptor.wTotalLength)
-//                 {
-//                     // this is the first packet of the transfer
-//                     byte_index = 0;
-//                     descriptor_index = 1;
-//                     packet_length = min(DL_CONFIGURATION, EP0_MAX_PACKET);
-//
-//                     memcpy(control.buffer, &configuration_descriptor, packet_length);
-//
-//                     byte_index += packet_length;
-//                 }
-
                 /*
                  * gather various descriptors into transfer_buffer
                  * using state information stored in descriptor_index, byte_index

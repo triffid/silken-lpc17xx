@@ -226,7 +226,7 @@ int main()
 //                 printf("Begin read Sectors 0-255\n");
 //                 sd->begin_read(0, 256, buf, &sar_dumper);
 //             }
-            printf(".");
+            printf("{0x%03lX,0x%02lX}", *((uint32_t*) 0x5000C200), *((uint32_t*) 0x5000C230));
         }
 
         uint32_t r = uart->can_read();

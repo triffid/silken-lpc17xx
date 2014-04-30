@@ -48,20 +48,20 @@ USBhw::USBhw()
     LPC_PINCON->PINSEL1 &= 0xc3ffffff;
     LPC_PINCON->PINSEL1 |= 0x14000000;
 
+    // Disconnect USB device
+    SIEdisconnect();
+
     // Configure pin P2.9 to be Connect
     LPC_PINCON->PINSEL4 &= 0xfffcffff;
     LPC_PINCON->PINSEL4 |= 0x00040000;
-
-    // Disconnect USB device
-    SIEdisconnect();
 
     // work around OSX behaviour where if the device disconnects and quickly reconnects, it assumes it's the same device instead of checking
 //     wait_ms(1000);
     for (volatile uint32_t c = 1<<18; c; c--);
 
     // Set the maximum packet size for the control endpoints
-    realiseEndpoint(EP0IN,  EP0_MAX_PACKET, 0);
-    realiseEndpoint(EP0OUT, EP0_MAX_PACKET, 0);
+    realiseEndpoint(EP0IN,  EP0_MAX_PACKET);
+    realiseEndpoint(EP0OUT, EP0_MAX_PACKET);
 
     // Attach IRQ
     //     instance = this;
@@ -247,13 +247,20 @@ extern "C" {
 void USBhw::usbisr(void)
 {
 //  this just continuously spams errors, things seem to work fine without checking
-//     if (LPC_USB->USBDevIntSt & ERR_INT)
-//     {
-//         uint8_t err = SIEgetError();
+    if (LPC_USB->USBDevIntSt & ERR_INT)
+    {
+        volatile uint8_t err __attribute__ ((unused));
+        err = SIEgetError();
 //         if (err)
 //             TRACE("USB Error: 0x%02X\n", err);
-//     }
+        LPC_USB->USBDevIntClr = ERR_INT;
+    }
 
+    if (LPC_USB->USBDevIntSt & CDFULL)
+    {
+        // no idea why this is necessary, apparently we sometimes have data left over or something
+
+    }
     if (LPC_USB->USBDevIntSt & FRAME)
     {
         // Clear interrupt status flag
@@ -283,11 +290,15 @@ void USBhw::usbisr(void)
 
         if (devStat & SIE_DS_RST)
         {
+            // clear pending interrupts
+            LPC_USB->USBEpIntClr  = ~0UL;
+            LPC_USB->USBDevIntClr = ~0UL;
+
             // Bus reset
             usb_reset();
 
-            realiseEndpoint(EP0IN,  EP0_MAX_PACKET, 0);
-            realiseEndpoint(EP0OUT, EP0_MAX_PACKET, 0);
+            realiseEndpoint(EP0IN,  EP0_MAX_PACKET);
+            realiseEndpoint(EP0OUT, EP0_MAX_PACKET);
 
             SIEsetMode(SIE_MODE_INAK_CI | SIE_MODE_INAK_CO);
         }

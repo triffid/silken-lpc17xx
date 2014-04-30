@@ -107,7 +107,7 @@ uint8_t  selectEndpointClearInterrupt(uint8_t bEP);
 void     enableEndpointEvent(uint8_t bEP);
 void     disableEndpointEvent(uint8_t bEP);
 
-bool     realiseEndpoint(uint8_t bEP, uint32_t maxPacket, uint32_t flags);
+bool     realiseEndpoint(uint8_t bEP, uint32_t maxPacket);
 
 void     stallEndpoint(uint8_t bEP);
 void     unstallEndpoint(uint8_t bEP);

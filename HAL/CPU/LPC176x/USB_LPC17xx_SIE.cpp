@@ -183,7 +183,7 @@ void enableEndpointEvent(uint8_t bEP) {
     uint8_t endpoint = EP2IDX(bEP);
 
     // Enable an endpoint interrupt
-    USBEpIntEn |= EP(endpoint);
+    LPC_USB->USBEpIntEn |= EP(endpoint);
 }
 
 void disableEndpointEvent(uint8_t bEP) {
@@ -193,7 +193,7 @@ void disableEndpointEvent(uint8_t bEP) {
     USBEpIntEn &= ~EP(endpoint);
 }
 
-bool realiseEndpoint(uint8_t bEP, uint32_t maxPacket, uint32_t flags)
+bool realiseEndpoint(uint8_t bEP, uint32_t maxPacket)
 {
     uint8_t endpoint = EP2IDX(bEP);
 
