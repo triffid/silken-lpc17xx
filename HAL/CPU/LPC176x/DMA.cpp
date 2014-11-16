@@ -168,7 +168,7 @@ void DMA::begin()
 	data->source->dma_begin(this, DMA_SENDER);
 	data->destination->dma_begin(this, DMA_RECEIVER);
 	
-// 	printf("DMACH %d Begin!\n", data->dma_channel);
+	printf("DMA %d Begin!\n", data->dma_channel);
 
 	LPC_GPDMACH_TypeDef *pDMAch = (LPC_GPDMACH_TypeDef*) pGPDMACh[data->dma_channel];
 	
@@ -196,8 +196,12 @@ void DMA::isr()
 	LPC_GPDMA->DMACIntTCClear = (1 << data->dma_channel);
 	LPC_GPDMA->DMACIntErrClr  = (1 << data->dma_channel);
 
-	data->source->dma_complete(this, DMA_SENDER);
+    printf("DMA %d ISR ", data->dma_channel);
+
+    data->source->dma_complete(this, DMA_SENDER);
 	data->destination->dma_complete(this, DMA_RECEIVER);
+
+    printf(" OK!\n");
 	
 	channel_map[data->dma_channel] = NULL;
 }

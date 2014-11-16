@@ -38,7 +38,7 @@
 
 class DFU;
 
-typedef struct __attribute__ ((packed))
+typedef struct PACKED
 {
     uint8_t     bLength;
     uint8_t     bDescriptorType;
@@ -48,7 +48,7 @@ typedef struct __attribute__ ((packed))
     uint16_t    bcdDFUVersion;
 } DFU_functional_descriptor;
 
-typedef struct __attribute__ ((packed))
+typedef struct PACKED
 {
     uint8_t     bStatus;
     uint32_t    bwPollTimeout:24;
@@ -69,6 +69,8 @@ public:
      * USBFunction implementation
      */
     void added(USBClient&);
+
+    bool check_owner(usbdesc_base*);
 
     bool event_control(   USBClient&, usb_control_transfer& packet);
 

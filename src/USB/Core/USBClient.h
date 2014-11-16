@@ -10,10 +10,10 @@
 
 class USBFunction;
 
-typedef struct __attribute__ ((packed))
+typedef struct PACKED
 {
-    uint8_t bmRequestType;
-    uint8_t bRequest;
+    uint8_t  bmRequestType;
+    uint8_t  bRequest;
     uint16_t wValue;
     uint16_t wIndex;
     uint16_t wLength;
@@ -24,8 +24,11 @@ typedef struct
     usb_setup_packet setup;
 
     uint16_t transfer_remaining;
+
     uint8_t* buffer;
-    bool     zlp;
+
+    bool     zlp      :1;
+    bool     complete :1;
 } usb_control_transfer;
 
 class USBClient : public USBhw
@@ -67,6 +70,11 @@ public:
     int addInterface(usbdesc_interface*);
     int addEndpoint(usbdesc_endpoint*);
     int addString(const void*);
+
+    /*
+     * find the function which owns a specific descriptor
+     */
+    USBFunction* find_owner(usbdesc_base*);
 
     /*
      * usb required descriptors

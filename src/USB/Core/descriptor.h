@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define PACKED __attribute__ ((packed))
+
 #define DL_DEVICE                   0x12
 #define DL_CONFIGURATION            0x09
 #define DL_INTERFACE                0x09
@@ -91,7 +93,7 @@
 /*
  * base descriptor
  */
-typedef struct __attribute__ ((packed))
+typedef struct PACKED
 {
     uint8_t         bLength;                // descriptor length
     uint8_t         bDescType;              // descriptor type: see DT_* defines
@@ -101,7 +103,7 @@ typedef struct __attribute__ ((packed))
 /*
 * device descriptor
 */
-typedef struct __attribute__ ((packed))
+typedef struct PACKED
 {
     uint8_t         bLength;                // Device descriptor length (0x12)
     uint8_t         bDescType;              // DT_DEVICE (0x01)
@@ -123,7 +125,7 @@ typedef struct __attribute__ ((packed))
 /*
  * configuration descriptor
  */
-typedef struct __attribute__ ((packed))
+typedef struct PACKED
 {
     uint8_t         bLength;                // Configuration Descriptor Length (0x09)
     uint8_t         bDescType;              // DT_CONFIGURATION (0x02)
@@ -139,7 +141,7 @@ typedef struct __attribute__ ((packed))
 /*
  * interface descriptor
  */
-typedef struct __attribute__ ((packed))
+typedef struct PACKED
 {
     uint8_t         bLength;                // Interface Descriptor Length (0x09)
     uint8_t         bDescType;              // DT_INTERFACE (0x04)

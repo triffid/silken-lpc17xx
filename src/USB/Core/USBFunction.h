@@ -15,8 +15,14 @@ public:
     USBFunction(){};
 
 protected:
+    /*
+     * module connectivity
+     */
     virtual void added(  USBClient&) {};
     virtual void removed(USBClient&) {};
+
+    // is this our descriptor?
+    virtual bool check_owner(usbdesc_base*) { return false; };
 
     /*
      * USB Events

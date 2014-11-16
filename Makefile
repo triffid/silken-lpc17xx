@@ -67,18 +67,20 @@ OPTIMIZE  = s
 
 CDEFS    += APPBAUD=$(APPBAUD) DEBUG_MAIN
 
+# -fpack-struct
+
 FLAGS    += -O$(OPTIMIZE)
 FLAGS    += -ffunction-sections -fdata-sections
 FLAGS    += -Wall -g -funsigned-char
-FLAGS    += -funsigned-bitfields -fpack-struct -fshort-enums
+FLAGS    += -funsigned-bitfields -fshort-enums
 FLAGS    += $(patsubst %,-I%,$(INC))
 FLAGS    += $(patsubst %,-D%,$(CDEFS))
 
-CFLAGS   += $(FLAGS) -std=gnu99 -pipe -nostdlib -nostartfiles -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vfprintf -fno-builtin-puts
+CFLAGS   += $(FLAGS) -std=gnu11 -pipe -nostdlib -nostartfiles -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vfprintf -fno-builtin-puts
 
 ASFLAGS  += $(FLAGS)
 
-CXXFLAGS += $(FLAGS) -fno-rtti -fno-exceptions -std=gnu++0x
+CXXFLAGS += $(FLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 
 LDFLAGS  += $(FLAGS) -Wl,--as-needed,--gc-sections
 LDFLAGS  += -Wl,-Map=$(O)/$(PROJECT).map
@@ -149,7 +151,7 @@ $(O)/%.hex: $(O)/%.elf
 
 $(O)/%.lst: $(O)/%.elf
 	@echo "  LIST  " $@
-	@$(OBJDUMP) -Sg -j.text -j.data -j.rodata $< > $@
+	@$(OBJDUMP) -Sg -j.text -j.data -j.rodata $< > $@ 2>/dev/null
 
 $(O)/%.sym: $(O)/%.elf
 	@echo "  SYM   " $@

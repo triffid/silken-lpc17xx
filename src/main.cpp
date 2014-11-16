@@ -113,6 +113,11 @@ public:
     uint32_t last_sector;
 } sar_dumper;
 
+class test {
+public:
+    test();
+};
+
 GPIO* isp_btn;
 
 int main()
@@ -126,8 +131,14 @@ int main()
 	for (i = 0; i < 34; i++)
 		NVIC_SetPriority((IRQn_Type) i, 31);
 
-	// UART gets highest priority
-	NVIC_SetPriority(UART0_IRQn, 0);
+    for (i = 0; i < 12; i++)
+        SCB->SHP[i] = 31 << 3;
+
+    // SysTick gets highest priority
+    SCB->SHP[8] = 0;
+
+	// UART gets high priority
+	NVIC_SetPriority(UART0_IRQn, 5);
 
 	GPIO leds[5] = {
 		GPIO(LED1),
@@ -162,7 +173,9 @@ int main()
 	
 	SPI* spi = new SPI(SSP1_MOSI, SSP1_MISO, SSP1_SCK, SSP1_SS);
 	
-	printf("Starting SD Card test\n");
+    Clock clock;
+
+    printf("Starting SD Card test\n");
 
 	SD* sd = new SD(spi);
 
@@ -172,12 +185,6 @@ int main()
 		printf("SD init failed: %d!\n", r);
 	}
 	else {
-    // 	uint8_t* rbuf = (uint8_t*) AHB0.alloc(512);
-
-    // 	sd->begin_read(0, rbuf, &sar_dumper);
-    // 	for (int z = 0; z < 32; z++)
-    // 		sd->begin_read(133 + z, rbuf, &sar_dumper);
-
         Fat* fat = new Fat();
 
         _fat_mount_ioresult fmount;
@@ -190,11 +197,7 @@ int main()
         printf("Mounted!\n");
     }
 
-    Clock clock;
-
     uint32_t clockflag = clock.request_flag();
-
-    uint8_t* buf = (uint8_t*) AHB0.alloc(512);
 
     USBClient usb;
 
@@ -204,15 +207,18 @@ int main()
 
     usb.connect();
 
+//     uint8_t* buf = (uint8_t*) AHB0.alloc(512);
 //     printf("Begin read Sectors 0-255\n");
 //     sd->begin_read(0, 256, buf, &sar_dumper);
+
+    test zxn;
 
     printf("Main loop\n");
 
     for (;;)
     {
-        if (isp_btn->get() == 0)
-            __debugbreak();
+//         if (isp_btn->get() == 0)
+//             __debugbreak();
 
 		sd->on_idle();
         dfu.on_idle();
@@ -277,24 +283,3 @@ int main()
 	
 	for(;;);
 }
-
-// 	void NMI_Handler() {
-// 		DEBUG_PRINTF("NMI\n");
-// 		for (;;);
-// 	}
-// 	void HardFault_Handler() {
-// 		DEBUG_PRINTF("HardFault\n");
-// 		for (;;);
-// 	}
-// 	void MemManage_Handler() {
-// 		DEBUG_PRINTF("MemManage\n");
-// 		for (;;);
-// 	}
-// 	void BusFault_Handler() {
-// 		DEBUG_PRINTF("BusFault\n");
-// 		for (;;);
-// 	}
-// 	void UsageFault_Handler() {
-// 		DEBUG_PRINTF("UsageFault\n");
-// 		for (;;);
-// 	}

@@ -8,6 +8,8 @@
 
 #include "mri.h"
 
+#define TRACE(...) printf(__VA_ARGS__)
+
 #define CMD_TIMEOUT 32
 #define READ_TIMEOUT 512
 #define WRITE_TIMEOUT 512
@@ -31,7 +33,7 @@ typedef enum {
     SD_ACMD_SEND_OP_COND        = 41
 } SD_ACMD_NUM;
 
-enum {
+typedef enum {
 	SD_READ_STATUS_START,
 	SD_READ_STATUS_WAIT_TRAN,
     SD_READ_STATUS_CONTINUE_MULTI,
@@ -40,7 +42,7 @@ enum {
     SD_READ_STATUS_BUFFER_DIRTY
 } SD_READ_STATUS;
 
-enum {
+typedef enum {
 	SD_WRITE_STATUS_START,
     SD_WRITE_STATUS_WAIT_BSY,
     SD_WRITE_STATUS_DMA,
@@ -384,7 +386,7 @@ int SD::init()
 	if (r != 0)
 		return -3;
 	
-	uint32_t ocr;
+	uint32_t ocr = 0;
 	
 	do
 	{
@@ -532,6 +534,8 @@ void SD::work_stack_read()
 {
     sd_work_stack_t* w = work_stack;
 
+//     printf("SD:{R %d/%p LBA 0x%02lX}\n", w->status, w, w->sector);
+
     switch(w->status)
     {
         case SD_READ_STATUS_START:
@@ -573,7 +577,7 @@ void SD::work_stack_read()
             r = spi->transfer(0xFF);
 
             // I have no idea why, but removing this printf causes us to hard-lock
-            printf("0x%X", r);
+//             printf("0x%X", r);
 
             if (r != 0xFE)
             {
@@ -604,13 +608,17 @@ void SD::work_stack_read()
 
             dma_rxmem.setup(w->buf, 512);
 
+//             TRACE("DMA:setup\n");
             dma_tx.setup(512);
             dma_rx.setup(512);
+            TRACE("DMA:setup complete\n");
+
+            w->status = SD_READ_STATUS_CHECKSUM;
+
+            for (volatile uint32_t r = 1UL<<24; r; r--);
 
             dma_rx.begin();
             dma_tx.begin();
-
-            w->status = SD_READ_STATUS_CHECKSUM;
 
             break;
         }
@@ -619,6 +627,9 @@ void SD::work_stack_read()
             spi->transfer(0xFF);
 
             sd_work_stack_t* w = work_stack;
+
+            TRACE("DMA:CSUM\n");
+            for (volatile uint32_t r = 1UL<<19; r; r--);
 
             // we must pop first, in case the read_complete event requests another read.
             // in that case, it's advantageous to have the work item in the GC queue already so it can be reused
@@ -822,6 +833,8 @@ void SD::dma_begin(DMA* dma, dma_direction_t direction)
 
 void SD::dma_complete(DMA* dma, dma_direction_t direction)
 {
+    TRACE("SD: dma complete %p\n", dma);
+
 	spi->dma_complete(dma, direction);
 
 	if (direction == DMA_RECEIVER)

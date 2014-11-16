@@ -142,9 +142,14 @@ int USBClient::addString(const void* s)
     return k;
 }
 
+USBFunction* USBClient::find_owner(usbdesc_base* descriptor)
+{
+    return functions[0];
+}
+
 void USBClient::usb_connect()
 {
-    for (USBFunction* f : functions)
+    for (auto f : functions)
         f->event_connect(*this);
 
     TRACE("USB connected\n");
@@ -152,7 +157,7 @@ void USBClient::usb_connect()
 
 void USBClient::usb_disconnect()
 {
-    for (USBFunction* f : functions)
+    for (auto f : functions)
         f->event_disconnect(*this);
 
     TRACE("USB disconnected\n");
@@ -160,7 +165,7 @@ void USBClient::usb_disconnect()
 
 void USBClient::usb_reset()
 {
-    for (USBFunction* f : functions)
+    for (auto f : functions)
         f->event_reset(*this);
 
     TRACE("USB reset\n");
@@ -168,7 +173,7 @@ void USBClient::usb_reset()
 
 void USBClient::usb_suspend()
 {
-    for (USBFunction* f : functions)
+    for (auto f : functions)
         f->event_suspend(*this);
 
     TRACE("USB suspend\n");
@@ -176,7 +181,7 @@ void USBClient::usb_suspend()
 
 void USBClient::usb_wake()
 {
-    for (USBFunction* f : functions)
+    for (auto f : functions)
         f->event_resume(*this);
 
     TRACE("USB wake\n");
@@ -191,7 +196,8 @@ void USBClient::usb_setup()
 
     control.buffer = transfer_buffer;
     control.transfer_remaining = setup.wLength;
-    control.zlp = ((setup.wLength == 0) && ((setup.bmRequestType & 1) == 0));
+    control.zlp = ((setup.wLength == 0) && ((setup.bmRequestType & 0x80) == 0));
+    control.complete = false;
 
     TRACE("USB setup: type 0x%02X req 0x%02X value 0x%04X index 0x%04X data %ub\n", setup.bmRequestType, setup.bRequest, setup.wValue, setup.wIndex, setup.wLength);
 
@@ -202,117 +208,209 @@ void USBClient::usb_setup()
     // recipient: 0 = device, 1 = interface, 2 = endpoint, 3 = other, 4..31 = reserved
     uint8_t recipient = setup.bmRequestType & 31;
 
-    switch(setup.bRequest)
+    if (type == 0)
     {
-        case RQ_GET_STATUS:
-            // TODO: check type and wIndex
-            TRACE("USB get status\n");
-            transfer_buffer[0] = 0;
-            transfer_buffer[1] = 0;
-            break;
-        case RQ_CLEAR_FEATURE:
-            break;
-        case RQ_SET_FEATURE:
-            break;
-        case RQ_SET_ADDRESS:
-            set_address(setup.wValue);
-            TRACE("USB got address 0x%04X\n", setup.wValue);
-            control.transfer_remaining = 0;
-            control.zlp = true;
-            break;
-        case RQ_GET_DESCRIPTOR:
+        switch(setup.bRequest)
         {
-            uint8_t type = setup.wValue >> 8;
-            uint8_t index = setup.wValue & 0xFF;
-            switch (type)
+            case RQ_GET_STATUS:
+                // TODO: check type and wIndex
+                TRACE("USB get status\n");
+                transfer_buffer[0] = 0;
+                transfer_buffer[1] = 0;
+                break;
+            case RQ_CLEAR_FEATURE:
+                break;
+            case RQ_SET_FEATURE:
+                break;
+            case RQ_SET_ADDRESS:
+                set_address(setup.wValue);
+                TRACE("USB got address 0x%04X\n", setup.wValue);
+                control.transfer_remaining = 0;
+                control.zlp = true;
+                break;
+            case RQ_GET_DESCRIPTOR:
             {
-                case DT_DEVICE:
-                    // default should handle this, but debug output is nice
-                    TRACE("USB get Device descriptor\n");
-
-                    control.buffer = (uint8_t*) &device_descriptor;
-                    control.transfer_remaining = min(control.setup.wLength, DL_DEVICE);
-
-                    break;
-                case DT_CONFIGURATION:
-                    TRACE("USB get Configuration descriptor\n");
-
-                    /*
-                     * set up state variables for descriptor gather routine below
-                     */
-                    control.transfer_remaining = min(control.setup.wLength, configuration_descriptor.wTotalLength);
-                    byte_index = 0;
-                    descriptor_index = 1;
-
-                    break;
-                default:
+                uint8_t type = setup.wValue >> 8;
+                uint8_t index = setup.wValue & 0xFF;
+                switch (type)
                 {
-                    TRACE("USB get descriptor type 0x%02X index %d\n", type, index);
+                    case DT_DEVICE:
+                        // default should handle this, but debug output is nice
+                        TRACE("USB get Device descriptor\n");
 
-                    uint8_t i = 0;
-                    control.transfer_remaining = 0;
-                    control.zlp = true;
+                        control.buffer = (uint8_t*) &device_descriptor;
+                        control.transfer_remaining = min(control.setup.wLength, DL_DEVICE);
 
-                    for (auto descriptor : descriptors)
+                        break;
+                    case DT_CONFIGURATION:
+                        TRACE("USB get Configuration descriptor\n");
+
+                        /*
+                        * set up state variables for descriptor gather routine below
+                        */
+                        control.transfer_remaining = min(control.setup.wLength, configuration_descriptor.wTotalLength);
+                        byte_index = 0;
+                        descriptor_index = 1;
+
+                        break;
+                    default:
                     {
-                        if (descriptor->bDescType == type)
+                        TRACE("USB get descriptor type 0x%02X index %d\n", type, index);
+
+                        uint8_t i = 0;
+                        control.transfer_remaining = 0;
+                        control.zlp = true;
+
+                        for (auto descriptor : descriptors)
                         {
-                            if (i == index)
+                            if (descriptor->bDescType == type)
                             {
-                                control.buffer = (uint8_t*) descriptor;
-                                control.transfer_remaining = descriptor->bLength;
-                                control.zlp = false;
+                                if (i == index)
+                                {
+                                    control.buffer = (uint8_t*) descriptor;
+                                    control.transfer_remaining = descriptor->bLength;
+                                    control.zlp = false;
 
-                                TRACE("USB get descriptor: found!\n");
+                                    TRACE("USB get descriptor: found!\n");
 
-                                break;
+                                    break;
+                                }
+                                i++;
                             }
-                            i++;
                         }
-                    }
 
-                    if (control.transfer_remaining == 0)
-                    {
-                        TRACE("USB get descriptor: NOT found\n");
+                        if (control.transfer_remaining == 0)
+                        {
+                            TRACE("USB get descriptor: NOT found\n");
+                        }
+                        break;
                     }
+                }
+                break;
+            }
+            case RQ_SET_DESCRIPTOR:
+                TRACE("USB set descriptor: error unsupported\n");
+                stall(EP0IN); // flag error
+                break;
+            case RQ_GET_CONFIGURATION:
+                TRACE("USB get Configuration\n");
+                transfer_buffer[0] = configuration_descriptor.bConfigurationValue;
+                break;
+            case RQ_SET_CONFIGURATION:
+                if (setup.wValue == 0)
+                {
+                    TRACE("USB unconfigure: STOP\n");
+                    unconfigure();
+                }
+                else
+                {
+                    TRACE("USB set Configuration: WE ARE GO\n");
+                    // TODO: something intelligent with wValue
+                    // TODO: "realise" relevant endpoints
+                    configure();
+                }
+                break;
+            case RQ_GET_INTERFACE:
+                TRACE("USB get interface\n");
+                // TODO: return relevant alternate interface
+                break;
+            case RQ_SET_INTERFACE:
+            {
+                TRACE("USB set interface\n");
+                // TODO: use relevant alternate interface
+                break;
+            };
+            case RQ_SYNC_FRAME:
+                // TODO: handle whatever this is
+                break;
+        }
+    }
+    else
+    {
+        // hand off to function
+        uint8_t target = 0;
+        if (recipient == 1) target = DT_INTERFACE;
+        if (recipient == 2) target = DT_ENDPOINT;
+
+        static const char* _req_types[] = {
+            "STANDARD",
+            "CLASS",
+            "VENDOR",
+            "Reserved"
+        };
+
+        static const char* _req_targets[] = {
+            "DEVICE",
+            "INTERFACE",
+            "ENDPOINT",
+            "OTHER"
+        };
+
+        if (type > 3) type = 3;
+        if (recipient > 3) recipient = 3;
+
+        TRACE("%s request, %s recipient... ", _req_types[type], _req_targets[recipient]);
+
+        usbdesc_base* desc = NULL;
+        uint8_t i = 0;
+
+        TRACE("%d descriptors... ", descriptors.size());
+
+        for (auto descriptor : descriptors)
+        {
+            __debugbreak();
+            if (descriptor->bDescType == target)
+            {
+                if (target == DT_INTERFACE)
+                {
+                    if (((usbdesc_interface*) descriptor)->bInterfaceNumber == setup.wIndex)
+                    {
+                        TRACE("found INTERFACE %d at %p: ", setup.wIndex, descriptor);
+                        desc = (usbdesc_base*) descriptor;
+                        break;
+                    }
+                }
+                else if (target == DT_ENDPOINT)
+                {
+                    if (((usbdesc_endpoint*) descriptor)->bEndpointAddress == setup.wIndex)
+                    {
+                        TRACE("found ENDPOINT %d at %p: ", setup.wIndex, descriptor);
+                        desc = (usbdesc_base*) descriptor;
+                        break;
+                    }
+                }
+                else if (i == setup.wIndex)
+                {
+                    TRACE("found MISC %d at %p: ", setup.wIndex, descriptor);
+                    desc = (usbdesc_base*) descriptor;
                     break;
                 }
+                else
+                    i++;
             }
-            break;
         }
-        case RQ_SET_DESCRIPTOR:
-            TRACE("USB set descriptor: error unsupported\n");
-            stall(EP0IN); // flag error
-            break;
-        case RQ_GET_CONFIGURATION:
-            TRACE("USB get Configuration\n");
-            transfer_buffer[0] = configuration_descriptor.bConfigurationValue;
-            break;
-        case RQ_SET_CONFIGURATION:
-            if (setup.wValue == 0)
+
+        if (desc)
+        {
+            USBFunction* f = find_owner((usbdesc_base*) desc);
+
+            TRACE("descriptor %p -> function %p", desc, f);
+
+            if (f)
             {
-                TRACE("USB unconfigure: STOP\n");
-                unconfigure();
+                bool r = f->event_control(*this, control);
+
+                if (!r)
+                {
+                    TRACE("USB function %p failed to handle control request!\n", f);
+                    control.zlp = true;
+                }
+                else
+                {
+                    TRACE("USB function %p handled control request\n", f);
+                }
             }
-            else
-            {
-                TRACE("USB set Configuration: WE ARE GO\n");
-                // TODO: something intelligent with wValue
-                // TODO: "realise" relevant endpoints
-                configure();
-            }
-            break;
-        case RQ_GET_INTERFACE:
-            TRACE("USB get interface\n");
-            // TODO: return relevant alternate interface
-            break;
-        case RQ_SET_INTERFACE:
-            TRACE("USB set interface\n");
-            // TODO: use relevant alternate interface
-            break;
-        case RQ_SYNC_FRAME:
-            // TODO: handle whatever this is
-            break;
+        }
     }
 
     if ((control.transfer_remaining > 0) && (direction == 1))
@@ -419,6 +517,11 @@ bool USBClient::usb_endpoint_tx_complete(uint8_t endpoint)
             TRACE("[EP0IN:0z]");
             write(endpoint, NULL, 0);
             control.zlp = false;
+            if ((control.setup.bmRequestType & 0x80) == 0)
+            {
+                control.complete = true;
+                TRACE("[Ctrl Complete]\n");
+            }
         }
         else
         {
@@ -456,6 +559,11 @@ bool USBClient::usb_endpoint_rx(uint8_t endpoint)
             {
                 // TODO: something interesting with received data
             }
+        }
+        else if (control.setup.bmRequestType & 0x80)
+        {
+            control.complete = true;
+            TRACE("[Ctrl Complete]\n");
         }
     }
     else

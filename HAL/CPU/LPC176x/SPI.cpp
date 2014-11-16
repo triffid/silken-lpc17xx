@@ -265,6 +265,8 @@ void SPI::dma_complete(DMA* dma, dma_direction_t direction)
 
 void SPI::dma_configure(dma_config* config)
 {
+//     printf("SPI: DMA configure %p\n", config);
+
 	config->mem_or_peripheral = DMA_PERIPHERAL;
 	
 	if      ((config->direction == DMA_SENDER  ) && (data->ssp_index == 0))
@@ -282,6 +284,9 @@ void SPI::dma_configure(dma_config* config)
 	config->endianness = DMA_LITTLE_ENDIAN;
 	config->word_size = DMA_WS_8BIT;
 	config->burst_size = DMA_BS_8;
+
+//     printf("SPI: DMA configured. p_index %d\n", config->peripheral_index);
+//     for (volatile uint32_t r = 1UL<<16; r; r--);
 }
 
 void SPI::begin_transaction(void)

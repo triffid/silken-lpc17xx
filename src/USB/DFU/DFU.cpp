@@ -47,44 +47,65 @@ void DFU::added(USBClient& u)
     dfu_interface.iInterface = usb->addString(&dfu_string);
 }
 
+bool DFU::check_owner(usbdesc_base* desc)
+{
+    void* d = (void*) desc;
+
+    if (d == &dfu_interface)  return true;
+    if (d == &dfu_descriptor) return true;
+    if (d == &dfu_string)     return true;
+
+    return false;
+}
+
 bool DFU::event_control(USBClient& u, usb_control_transfer& control)
 {
-    TRACE("Got DFU Control Request: %d length %d\n", control.setup.bRequest, control.setup.wLength);
-    switch (control.setup.bRequest)
+    TRACE("Got DFU Control Request: type 0x%02X request %d length %d\n", control.setup.bmRequestType, control.setup.bRequest, control.setup.wLength);
+
+    if (((control.setup.bmRequestType >> 5) & 3) == 1)
     {
-        case  DFU_DETACH:
+        // CLASS request
+        if ((control.setup.bmRequestType & 0x1F) == 1)
         {
-            prep_for_detach = 128;
-            WDT_Init(WDT_CLKSRC_IRC, WDT_MODE_RESET);
-            WDT_Start(250000); // 0.25 seconds
-            return true;
-        }
-        case DFU_GETSTATUS:
-        {
-            dfu_status = {
-                0,      // status OK
-                500,    // bwPollTimeout
-                0,      // state appIdle
-                0       // iString
-            };
-            control.buffer = (uint8_t *) &dfu_status;
-            control.transfer_remaining = sizeof(dfu_status);
-            return true;
-        }
-        case DFU_CLRSTATUS:
-        {
-            return true;
-        }
-        case DFU_GETSTATE:
-        {
-            dfu_status.bState = 0; // appIdle
-            control.buffer    = &dfu_status.bState;
-            control.transfer_remaining = sizeof(dfu_status.bState);
-            return true;
-        }
-        case DFU_ABORT:
-        {
-            return true;
+            // INTERFACE target (presumably ours, or USBClient wouldn't call this function)
+            switch (control.setup.bRequest)
+            {
+                case  DFU_DETACH:
+                {
+                    TRACE("DFU: detach\n");
+                    prep_for_detach = 128;
+                    WDT_Init(WDT_CLKSRC_IRC, WDT_MODE_RESET);
+                    WDT_Start(250000); // 0.25 seconds
+                    return true;
+                }
+                case DFU_GETSTATUS:
+                {
+                    dfu_status = {
+                        0,      // status OK
+                        500,    // bwPollTimeout
+                        0,      // state appIdle
+                        0       // iString
+                    };
+                    control.buffer = (uint8_t *) &dfu_status;
+                    control.transfer_remaining = sizeof(dfu_status);
+                    return true;
+                }
+                case DFU_CLRSTATUS:
+                {
+                    return true;
+                }
+                case DFU_GETSTATE:
+                {
+                    dfu_status.bState = 0; // appIdle
+                    control.buffer    = &dfu_status.bState;
+                    control.transfer_remaining = sizeof(dfu_status.bState);
+                    return true;
+                }
+                case DFU_ABORT:
+                {
+                    return true;
+                }
+            }
         }
     }
     return false;
@@ -92,6 +113,7 @@ bool DFU::event_control(USBClient& u, usb_control_transfer& control)
 
 void DFU::event_reset(USBClient& u)
 {
+    TRACE("DFU: got reset event\n");
     if (prep_for_detach)
     {
         usb->disconnect();

@@ -29,6 +29,7 @@ typedef enum {
 	DMA_LITTLE_ENDIAN,
 	DMA_BIG_ENDIAN
 } dma_endianness_t;
+
 struct _dma_config
 {
 	dma_direction_t      direction;
